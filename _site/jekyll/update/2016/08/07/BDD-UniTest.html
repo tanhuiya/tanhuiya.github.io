@@ -1,0 +1,490 @@
+<!DOCTYPE html>
+<html lang="en">
+
+  <head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <title>iOS 单元测试详解</title>
+  <meta name="description" content="单元测试">
+
+  <link rel="stylesheet" href="/css/main.css">
+  <link rel="canonical" href="http://example.com/jekyll/update/2016/08/07/BDD-UniTest.html">
+  <link rel="alternate" type="application/rss+xml" title="Tan" href="http://example.com/feed.xml">
+</head>
+
+
+  <body>
+
+    <header class="site-header" role="banner">
+
+  <div class="wrapper">
+
+    <a class="site-title" href="/">Tan</a>
+
+    <nav class="site-nav">
+      <a href="#" class="menu-icon">
+        <svg viewBox="0 0 18 15">
+          <path fill="#424242" d="M18,1.484c0,0.82-0.665,1.484-1.484,1.484H1.484C0.665,2.969,0,2.304,0,1.484l0,0C0,0.665,0.665,0,1.484,0 h15.031C17.335,0,18,0.665,18,1.484L18,1.484z"/>
+          <path fill="#424242" d="M18,7.516C18,8.335,17.335,9,16.516,9H1.484C0.665,9,0,8.335,0,7.516l0,0c0-0.82,0.665-1.484,1.484-1.484 h15.031C17.335,6.031,18,6.696,18,7.516L18,7.516z"/>
+          <path fill="#424242" d="M18,13.516C18,14.335,17.335,15,16.516,15H1.484C0.665,15,0,14.335,0,13.516l0,0 c0-0.82,0.665-1.484,1.484-1.484h15.031C17.335,12.031,18,12.696,18,13.516L18,13.516z"/>
+        </svg>
+      </a>
+
+      <div class="trigger">
+        
+          
+          <a class="page-link" href="/2016-08-07-welcome-to-jekyll.html">Welcome to Jekyll!</a>
+          
+        
+          
+          <a class="page-link" href="/about/">About</a>
+          
+        
+          
+        
+          
+        
+          
+        
+      </div>
+    </nav>
+
+  </div>
+
+</header>
+
+
+    <main class="page-content" aria-label="Content">
+      <div class="wrapper">
+        <article class="post" itemscope itemtype="http://schema.org/BlogPosting">
+
+  <header class="post-header">
+    <h1 class="post-title" itemprop="name headline">iOS 单元测试详解</h1>
+    <p class="post-meta"><time datetime="2016-08-07T17:50:00+08:00" itemprop="datePublished">Aug 7, 2016</time></p>
+  </header>
+
+  <div class="post-content" itemprop="articleBody">
+    <h1 id="section">单元测试</h1>
+
+<h2 id="section-1">为什么需要单元测试</h2>
+<p>减少代码中的低级错误。
+有效的降低bug的出现率。
+增强可维护性。
+改善设计，代码结构性强。</p>
+
+<p>被测试的对象，方法大概分为三种: <br />
+* 有明确的返回值，采用返回值验证法，验证返回值是否符合预期。 <br />
+* 没有返回值，但方法内部修改了对象的属性或者状态，采用状态验证法，是否符合预期。<br />
+* 依赖于外部的类，方法，会调用外部的方法，采用行为验证法。</p>
+
+<p>单元测试可能遇到的问题
+* 测试上下文有太多依赖，设计的耦合性太高。 <br />
+* 运行的速度缓慢，你的单元测试中可能存在外部系统，列入数据库，网络请求，文件系统等。 <br />
+* 改变一个地方，多处测试受影响，可能是测试设计的问题，也可能是代码的粒度拆分不够。 <br />
+* 怎样测试私有方法——私有方法有太多的行为 。</p>
+
+<h2 id="section-2">测试哪些东西</h2>
+
+<p>我们应该测试对象的行为，这是一种行为驱动开发技术(BDD)，可以参考 <a href="https://codeutopia.net/blog/2015/03/01/unit-testing-tdd-and-bdd/">unit-testing-tdd-and-bdd</a>。那什么是行为？
+你设计的App中有一个对象，它有一个接口定义了其方法和依赖关系。这些方法和依赖，声明了你对象的约定。它们定义了如何与你应用的其他部分交互，以及它的功能是什么。它们定义了对象的行为。这同时也是你的目标，测试对象的行为。
+比如点击按钮是否触发了某个行为。</p>
+
+<h2 id="section-3">怎样进行单元测试</h2>
+
+<p>单元测试本质上来说就是用断言来判断对象是否达到预期的行为。 <br />
+单元测试的关注点单一，单元测试需要保证你每个测试用例是针对一个单元，而不是一个有很多复杂依赖注入的综合行为。 <br />
+我们尽可能让类方法的职责单一，这样才能保证变化点都集中在被测试的单元中。 <br />
+单元测试一般比较静态，它只是验证某一动作的正确性。
+大部分单元测试将针对对象的状态，来断言一个特定的交互是否发生，或者一个特定值是否返回。将依赖提取出来，这可以允许你轻松mock。
+注意，你不该将对象的所有依赖都暴露在头文件中，尤其是你开始测试的时候，这样看起来很诱人，但会破坏你类结构的封装，你的接口应该只表述设计需求。</p>
+
+<ul>
+  <li>使用伪造类避免对其它类的依赖：被测试的方法需要某个对象作为参数，但测试类中并不关心对象的具体实现。</li>
+  <li>伪造环境避免其它环境的干扰：比如在网络请求异步的环境中，测试代码不好写，可以将该步骤分开，测试请求网络行为，再模拟数据返回，测试网络数据返回后的行为。也可以采用GHUnit等第三方框架。</li>
+</ul>
+
+<h2 id="section-4">单元测试坏的实践</h2>
+
+<ul>
+  <li>不应该测试构造函数–构造函数中应该是实现类的一些细节，而我们是针对对象的行为做测试，所以构造函数没有值得测的东西。</li>
+  <li>不要测试私有方法–私有方法意味着私有，如果你觉得你有必要测试私有方法，那可能你的私有方法中做的事太多了，从而违背了单一职责原则。</li>
+  <li>不要stub私有方法–因为你的私有方法是可以在类中不经通知自由修改的，当stub私有方法后，私有方法修改后可能与你的期望背到而驰，但你的测试还是会通过，这是见很可怕的事情。</li>
+  <li>不要stub第三方库–比如你stub了[AFNetworking sendRequest]方法，不需要通过实际的网络调用是测试内容更单一，当你更换了这个网络库之后，这个测试用例就会失效，而你实际上stub的目的就是模拟网络请求成功。所以测试中应该封装一层，来代替那个库的全部功能。</li>
+</ul>
+
+<h3 id="given--when--then-">Given / When / Then 模式</h3>
+
+<p>将测试用例分为三个部分 <br />
+* Given 部分，通过创建对象，活着stub对象，将测试的系统设定到指定的状态，来设置测试的环境。<br />
+* When 部分包含了我们具体需要测试的代码。 <br />
+* Then 部分是验证测试的结果，是否达到我们的期望，对象是否有改变，返回值是否合格等。</p>
+
+<p>下面是家园宝测试作业是否正常继续下载的例子：</p>
+
+<div class="highlighter-rouge"><pre class="highlight"><code>-(void)testResumeWithHomeWorkModel{
+    //Given
+    if (!self.manager) {
+	    self.manager = [DownLoadHomeWorkManager manager];
+    }
+    HomeModel* homeModel = [[HomeModel alloc]init];
+    homeModel.pid = @"497";
+    //When
+    [self.manager resumeTaskWith:homeModel];
+    //Then    
+    XCTAssertEqual(homeModel.status, HomeworkStateDownloading);
+}
+</code></pre>
+</div>
+
+<h3 id="mock">Mock</h3>
+
+<p>在iOS测试中的mock框架可以采用OCMock，我们用mock来管理一个对象的所有依赖。当被测试的方法里耦合着其它对象时，但是你不想让这个对象的返回值对这个方法有影响，你可以通过mock 的方式返回一个默认值。 <br />
+另外，我们的测试代码中不能过度的使用mock，mock除去了被测试对象以外的其它对象，这样其它对象修改了之后，这个被测试的对象就不能自动失败。</p>
+
+<h2 id="section-5">单元测试框架</h2>
+<p>### XCTest
+XCTest 是iOS自带的一个测试框架，相比于其他第三方集成度高，能满足大部分测试需求。但是并没有提供mock的功能。</p>
+
+<h3 id="ocmock">OCMock</h3>
+
+<p>OCMock 是一个OC的模拟对象库，他提供了关于mock 和 stub 的功能，可以和XCTest一起使用。它看起来像这样。</p>
+
+<div class="highlighter-rouge"><pre class="highlight"><code>- (void)testAddDownLoadHomeWorkModel{
+    if (!self.manager) {
+	    self.manager = [DownLoadHomeWorkManager manager];
+    }
+    HomeModel* homeModel = [[HomeModel alloc]init];
+    //mock 出一个dataCenter
+    id dataCenter = OCMClassMock([HomeworkDataCenter class]);
+    self.manager.dataCenter = dataCenter;
+    homeModel.pid = @"497";
+    //该方法被调用时返回1
+    OCMStub([dataCenter insertHomeModel:homeModel]).andReturn(1);
+    [self.manager addDownLoadTask:homeModel];
+    XCTAssertEqual(homeModel.status, HomeworkStateDownloading);
+}
+</code></pre>
+</div>
+
+<h3 id="kiwi">Kiwi</h3>
+<p><a href="https://github.com/kiwi-bdd/Kiwi">Kiwi</a> 是一个行为驱动开发(BDD)的框架，它旨在解决具体问题，帮助开发人员确定应该测什么内容。你不应该关注于测试，而是应该关注于行为。
+该框架相比iOS自带的XCTest，它的语法更类似于自然语言，易读性强。
+Kiwi 更多使用方法点击 <a href="http://www.tuicool.com/articles/3auQbez">这里</a></p>
+
+<div class="highlighter-rouge"><pre class="highlight"><code>SPEC_BEGIN(First)
+describe(@"First", ^{
+	context(@"create a string", ^{
+   		 __block NSString * name = nil;
+    	beforeEach(^{
+	   		 name = @"aa";
+    	});
+	    it(@"name should be aa", ^{
+		    [[name shouldNot]beNil];
+	    }); 
+    });
+});
+SPEC_END
+</code></pre>
+</div>
+
+<h2 id="section-6">测试实例</h2>
+<p>－－－－－－－－－－－结合家园宝实例会补充－－－－－－－－－ <br />
+首先，我们来看一下iOS的UIViewController。对代码分析时，发现大量的的逻辑都被写在 .m 文件里，我们知道，UIViewController 在 .h 里面暴露的方法很少，可是 .m 大量的逻辑单元测试又不能不做，这就相当于要对代码中的private 方法进行测试。
+进一步分析发现，如果在ViewController 中 添加一个业务逻辑层，将UIViewController 里的业务逻辑放入中间层，该层可以负责网络的请求，数据的处理等。一方面会使ViewController 更加简洁和实现单一原则，另一方面保证了逻辑的可能性，该中间层会对ViewController 暴露一些接口。在MVC的设计模式中，ViewController 承受了太多的任务导致测试的难度增加，将ViewController 拆分（MVVM）就会更加有利于单元测试。</p>
+
+<div class="highlighter-rouge"><pre class="highlight"><code><span class="n">describe</span><span class="p">(</span><span class="s">@"Bind ViewModel"</span><span class="p">,</span> <span class="o">^</span><span class="p">{</span>
+    <span class="n">__block</span> <span class="n">WrapJSMessageView</span><span class="o">*</span> <span class="n">replyView</span> <span class="o">=</span> <span class="nb">nil</span><span class="p">;</span>
+    <span class="n">__block</span> <span class="n">WrapJSMessageViewModel</span><span class="o">*</span> <span class="n">replyViewModel</span> <span class="o">=</span> <span class="nb">nil</span><span class="p">;</span>
+    <span class="n">replyView</span> <span class="o">=</span> <span class="p">[[</span><span class="n">WrapJSMessageView</span> <span class="nf">alloc</span><span class="p">]</span><span class="nf">init</span><span class="p">];</span>
+    <span class="n">replyViewModel</span> <span class="o">=</span> <span class="p">[[</span><span class="n">WrapJSMessageViewModel</span> <span class="nf">alloc</span><span class="p">]</span><span class="nf">init</span><span class="p">];</span>
+    <span class="n">replyView</span><span class="p">.</span><span class="n">replyViewModel</span> <span class="o">=</span> <span class="n">replyViewModel</span><span class="p">;</span>
+    
+    <span class="n">context</span><span class="p">(</span><span class="s">@"Test Text Binding  "</span><span class="p">,</span> <span class="o">^</span><span class="p">{</span>
+        <span class="n">it</span><span class="p">(</span><span class="s">@"Image Should NotNil"</span><span class="p">,</span> <span class="o">^</span><span class="p">{</span>
+            <span class="p">[[</span><span class="n">replyViewModel</span><span class="p">.</span><span class="n">image</span> <span class="nf">shouldNot</span><span class="p">]</span><span class="nf">beNil</span><span class="p">];</span>
+        <span class="p">});</span>
+        
+        <span class="c1">//select Image;
+</span>        <span class="p">{</span>
+            <span class="n">UIImage</span><span class="o">*</span> <span class="n">image</span> <span class="o">=</span> <span class="p">[</span><span class="n">UIImage</span> <span class="nf">new</span><span class="p">];</span>
+            <span class="n">NSDictionary</span><span class="o">*</span> <span class="n">dict</span> <span class="o">=</span> <span class="p">@{};</span>
+            <span class="p">[</span><span class="n">dict</span> <span class="nf">stub</span><span class="p">:</span><span class="k">@selector</span><span class="p">(</span><span class="nf">objectForKey</span><span class="p">:)</span> <span class="n">andReturn</span><span class="o">:</span><span class="n">image</span> <span class="n">withArguments</span><span class="o">:</span><span class="s">@"UIImagePickerControllerOriginalImage"</span><span class="p">];</span>
+            <span class="p">[</span><span class="n">replyView</span> <span class="nf">imagePickerController</span><span class="p">:[</span><span class="n">UIImagePickerController</span> <span class="nf">new</span><span class="p">]</span> <span class="nf">didFinishPickingMediaWithInfo</span><span class="p">:</span><span class="n">dict</span><span class="p">];</span>
+            <span class="n">it</span><span class="p">(</span><span class="s">@"select Image"</span><span class="p">,</span> <span class="o">^</span><span class="p">{</span>
+                <span class="p">[[</span><span class="n">replyViewModel</span><span class="p">.</span><span class="n">image</span> <span class="nf">should</span><span class="p">]</span><span class="nf">equal</span><span class="p">:</span><span class="n">image</span><span class="p">];</span>
+            <span class="p">});</span>
+        <span class="p">}</span>
+        
+       <span class="c1">// clear text
+</span>        <span class="p">{</span>
+            <span class="n">it</span><span class="p">(</span><span class="s">@"After reset Image should Be reset"</span><span class="p">,</span> <span class="o">^</span><span class="p">{</span>
+                <span class="p">[[</span><span class="n">replyView</span> <span class="nf">should</span><span class="p">]</span><span class="nf">receive</span><span class="p">:</span><span class="k">@selector</span><span class="p">(</span><span class="n">resetReplyView</span><span class="p">)];</span>
+                <span class="n">replyViewModel</span><span class="p">.</span><span class="n">text</span> <span class="o">=</span> <span class="nb">nil</span><span class="p">;</span>
+            <span class="p">});</span>
+        <span class="p">}</span>
+        
+        
+        <span class="n">UIButton</span><span class="o">*</span> <span class="n">sendBtn</span> <span class="o">=</span> <span class="nb">nil</span><span class="p">;</span>
+        <span class="p">[</span><span class="n">UIView</span> <span class="nf">getViewByTitle</span><span class="p">:</span><span class="s">@"发送"</span> <span class="nf">rootView</span><span class="p">:</span><span class="n">replyView</span> <span class="n">resultView</span><span class="o">:&amp;</span><span class="n">sendBtn</span><span class="p">];</span>
+        
+        <span class="c1">// test Click ReplyBtn
+</span>        <span class="p">{</span>
+            <span class="n">it</span><span class="p">(</span><span class="s">@"Get Send Btn"</span><span class="p">,</span> <span class="o">^</span><span class="p">{</span>  
+                <span class="p">[[</span><span class="n">sendBtn</span> <span class="nf">shouldNot</span><span class="p">]</span><span class="nf">beNil</span><span class="p">];</span>
+            <span class="p">});</span>
+        <span class="p">}</span>
+        <span class="c1">// Send Btn should Be disable
+</span>        <span class="p">{</span>
+            <span class="n">it</span><span class="p">(</span><span class="s">@"Send Btn should Disable"</span><span class="p">,</span> <span class="o">^</span><span class="p">{</span>
+                <span class="p">[[</span><span class="n">theValue</span><span class="p">(</span><span class="n">sendBtn</span><span class="p">.</span><span class="n">enabled</span><span class="p">)</span><span class="nf">should</span><span class="p">]</span> <span class="nf">beFalse</span><span class="p">];</span>
+            <span class="p">});</span>
+        <span class="p">}</span>
+        
+        <span class="c1">//Send Btn should Be disable
+</span>        <span class="p">{</span>
+            <span class="n">it</span><span class="p">(</span><span class="s">@"Send Btn should Enable"</span><span class="p">,</span> <span class="o">^</span><span class="p">{</span>
+                <span class="n">replyViewModel</span><span class="p">.</span><span class="n">text</span> <span class="o">=</span> <span class="s">@"222"</span><span class="p">;</span>
+                <span class="p">[[</span><span class="n">theValue</span><span class="p">(</span><span class="n">sendBtn</span><span class="p">.</span><span class="n">enabled</span><span class="p">)</span><span class="nf">should</span><span class="p">]</span> <span class="nf">beFalse</span><span class="p">];</span>
+            <span class="p">});</span>
+        <span class="p">}</span>
+        
+        <span class="c1">// ReplyBtnClicked
+</span>        <span class="p">{</span>
+            <span class="p">[[</span><span class="n">replyViewModel</span><span class="p">.</span><span class="n">replyCommand</span> <span class="nf">should</span><span class="p">]</span><span class="nf">receive</span><span class="p">:</span><span class="k">@selector</span><span class="p">(</span><span class="nf">execute</span><span class="p">:)];</span>
+            
+            <span class="n">it</span><span class="p">(</span><span class="s">@"Send Should Invalid"</span><span class="p">,</span> <span class="o">^</span><span class="p">{</span>
+                <span class="p">[</span><span class="n">sendBtn</span> <span class="nf">sendActionsForControlEvents</span><span class="p">:</span><span class="n">UIControlEventTouchUpInside</span><span class="p">];</span>
+            <span class="p">});</span>
+        <span class="p">}</span>
+
+    <span class="p">});</span>
+    
+<span class="p">})</span>
+
+<span class="n">DetailNewViewController</span>
+
+<span class="n">describe</span><span class="p">(</span><span class="s">@"DetailNewViewController"</span><span class="p">,</span> <span class="o">^</span><span class="p">{</span>
+    <span class="n">__block</span> <span class="n">DetailNewViewController</span><span class="o">*</span> <span class="n">detail</span> <span class="o">=</span> <span class="p">[[</span><span class="n">DetailNewViewController</span> <span class="nf">alloc</span><span class="p">]</span><span class="nf">init</span><span class="p">];</span>
+    <span class="n">context</span><span class="p">(</span><span class="s">@"initial with valid post_id"</span><span class="p">,</span> <span class="o">^</span><span class="p">{</span>
+
+        <span class="n">id</span> <span class="n">viewModel</span> <span class="o">=</span> <span class="n">OCMClassMock</span><span class="p">([</span><span class="n">PostDetailViewModel</span> <span class="nf">class</span><span class="p">]);</span>
+        <span class="n">detail</span><span class="p">.</span><span class="n">viewModel</span> <span class="o">=</span> <span class="n">viewModel</span><span class="p">;</span>
+        <span class="n">detail</span><span class="p">.</span><span class="n">postid</span> <span class="o">=</span> <span class="s">@"100"</span><span class="p">;</span>
+        <span class="n">it</span><span class="p">(</span><span class="s">@"initWithPostid should be invoked"</span><span class="p">,</span> <span class="o">^</span><span class="p">{</span>
+            <span class="n">OCMVerify</span><span class="p">([</span><span class="n">viewModel</span> <span class="nf">initWithPostId</span><span class="p">:[</span><span class="n">OCMArg</span> <span class="nf">any</span><span class="p">]]);</span>
+        <span class="p">});</span>
+    <span class="p">});</span>
+    
+    <span class="n">context</span><span class="p">(</span><span class="s">@"Inital"</span><span class="p">,</span> <span class="o">^</span><span class="p">{</span>
+        
+        <span class="n">PostDetailViewModel</span><span class="o">*</span> <span class="n">viewModel</span> <span class="o">=</span> <span class="p">[[</span><span class="n">PostDetailViewModel</span> <span class="nf">alloc</span><span class="p">]</span><span class="nf">initWithPostId</span><span class="p">:</span><span class="s">@"1"</span><span class="p">];</span>
+        
+        <span class="c1">// 测试获取帖子数据
+</span>        <span class="p">{</span>
+            
+            <span class="n">MJRefreshGifHeader</span><span class="o">*</span> <span class="n">header</span> <span class="o">=</span> <span class="nb">nil</span><span class="p">;</span>
+            <span class="c1">//获取header
+</span>            <span class="p">[</span><span class="n">UIView</span> <span class="nf">getRefeshHeader</span><span class="p">:</span><span class="n">detail</span><span class="p">.</span><span class="n">view</span> <span class="nf">resultView</span><span class="p">:</span><span class="o">&amp;</span><span class="n">header</span><span class="p">];</span>
+            <span class="n">it</span><span class="p">(</span><span class="s">@"RefreshController should not be nil"</span><span class="p">,</span> <span class="o">^</span><span class="p">{</span>
+                <span class="p">[[</span><span class="n">header</span> <span class="nf">shouldNot</span><span class="p">]</span><span class="nf">beNil</span><span class="p">];</span>
+            <span class="p">});</span>
+            
+            
+            <span class="n">RACCommand</span><span class="o">*</span> <span class="n">fetchRawCommand</span> <span class="o">=</span> <span class="n">OCMClassMock</span><span class="p">([</span><span class="n">RACCommand</span> <span class="nf">class</span><span class="p">]);</span>
+            <span class="n">viewModel</span><span class="p">.</span><span class="n">fetchRawDataCommand</span> <span class="o">=</span> <span class="n">fetchRawCommand</span><span class="p">;</span>
+
+            <span class="p">[</span><span class="n">detail</span> <span class="nf">viewDidLoad</span><span class="p">];</span>
+            <span class="n">it</span><span class="p">(</span><span class="s">@"should Request Post Data"</span><span class="p">,</span> <span class="o">^</span><span class="p">{</span>
+                <span class="n">OCMVerify</span><span class="p">([</span><span class="n">header</span> <span class="nf">beginRefreshing</span><span class="p">]);</span>
+            <span class="p">});</span>
+        <span class="p">}</span>
+        
+        
+        <span class="c1">//测试获取评论列表
+</span>        
+        <span class="p">{</span>
+            <span class="n">NSDictionary</span><span class="o">*</span> <span class="n">returnData</span> <span class="o">=</span> <span class="p">@{</span>
+                                          <span class="s">@"ret"</span><span class="o">:</span><span class="err">@</span><span class="p">(</span><span class="mi">1</span><span class="p">),</span>
+                                          <span class="s">@"retCode"</span><span class="o">:</span><span class="err">@</span><span class="p">(</span><span class="mi">1</span><span class="p">),</span>
+                                          <span class="p">};</span>
+            
+            <span class="n">detail</span><span class="p">.</span><span class="n">viewModel</span> <span class="o">=</span> <span class="n">viewModel</span><span class="p">;</span>
+            <span class="n">id</span> <span class="n">fetchReplyCommand</span> <span class="o">=</span> <span class="n">OCMClassMock</span><span class="p">([</span><span class="n">RACCommand</span> <span class="nf">class</span><span class="p">]);</span>
+            <span class="n">viewModel</span><span class="p">.</span><span class="n">fetchReplyListCommand</span> <span class="o">=</span> <span class="n">fetchReplyCommand</span><span class="p">;</span>
+            
+            <span class="p">[</span><span class="n">detail</span> <span class="nf">showWithDict</span><span class="p">:</span><span class="n">returnData</span><span class="p">];</span>
+            <span class="n">it</span><span class="p">(</span><span class="s">@"Then Request ReplyList Data"</span><span class="p">,</span> <span class="o">^</span><span class="p">{</span>
+                <span class="n">OCMVerify</span><span class="p">([</span><span class="n">fetchReplyCommand</span> <span class="nf">execute</span><span class="p">:[</span><span class="n">OCMArg</span> <span class="nf">any</span><span class="p">]]);</span>
+            <span class="p">});</span>
+        <span class="p">}</span>
+    <span class="p">});</span>
+
+   <span class="n">context</span><span class="p">(</span><span class="s">@"Test Click Collect Btn"</span><span class="p">,</span> <span class="o">^</span><span class="p">{</span>
+       
+       <span class="n">detail</span><span class="p">.</span><span class="n">isIntersting</span> <span class="o">=</span> <span class="nb">NO</span><span class="p">;</span>
+       <span class="n">detail</span><span class="p">.</span><span class="n">contentData</span> <span class="o">=</span> <span class="p">[</span><span class="n">NSDictionary</span> <span class="nf">mock</span><span class="p">];</span>
+       <span class="n">PostDetailViewModel</span><span class="o">*</span> <span class="n">viewModel</span> <span class="o">=</span> <span class="p">[[</span><span class="n">PostDetailViewModel</span> <span class="nf">alloc</span><span class="p">]</span><span class="nf">init</span><span class="p">];</span>
+       <span class="n">id</span> <span class="n">command</span> <span class="o">=</span> <span class="n">OCMClassMock</span><span class="p">([</span><span class="n">RACCommand</span> <span class="nf">class</span><span class="p">]);</span>
+       <span class="n">viewModel</span><span class="p">.</span><span class="n">collectCommand</span> <span class="o">=</span> <span class="n">command</span><span class="p">;</span>
+       
+       <span class="n">detail</span><span class="p">.</span><span class="n">viewModel</span> <span class="o">=</span> <span class="n">viewModel</span><span class="p">;</span>
+       <span class="p">[</span><span class="n">detail</span> <span class="nf">soucangBtnDidClicked</span><span class="p">];</span>
+       
+       <span class="n">it</span><span class="p">(</span><span class="s">@"Send NetWork should Raised "</span><span class="p">,</span> <span class="o">^</span><span class="p">{</span>
+           <span class="n">OCMVerify</span><span class="p">([</span><span class="n">command</span> <span class="nf">execute</span><span class="p">:[</span><span class="n">OCMArg</span> <span class="nf">any</span><span class="p">]]);</span>
+       <span class="p">});</span>
+       
+   <span class="p">});</span>
+    
+    <span class="n">context</span><span class="p">(</span><span class="s">@"Test Click Uncollect Btn"</span><span class="p">,</span> <span class="o">^</span><span class="p">{</span>
+        <span class="n">detail</span><span class="p">.</span><span class="n">isIntersting</span> <span class="o">=</span> <span class="nb">YES</span><span class="p">;</span>
+        <span class="n">detail</span><span class="p">.</span><span class="n">contentData</span> <span class="o">=</span> <span class="p">[</span><span class="n">NSDictionary</span> <span class="nf">mock</span><span class="p">];</span>
+        <span class="n">PostDetailViewModel</span><span class="o">*</span> <span class="n">viewModel</span> <span class="o">=</span> <span class="p">[[</span><span class="n">PostDetailViewModel</span> <span class="nf">alloc</span><span class="p">]</span><span class="nf">init</span><span class="p">];</span>
+        <span class="n">id</span> <span class="n">command</span> <span class="o">=</span> <span class="n">OCMClassMock</span><span class="p">([</span><span class="n">RACCommand</span> <span class="nf">class</span><span class="p">]);</span>
+        <span class="n">viewModel</span><span class="p">.</span><span class="n">unCollectCommand</span> <span class="o">=</span> <span class="n">command</span><span class="p">;</span>
+        
+        <span class="n">detail</span><span class="p">.</span><span class="n">viewModel</span> <span class="o">=</span> <span class="n">viewModel</span><span class="p">;</span>
+        <span class="p">[</span><span class="n">detail</span> <span class="nf">soucangBtnDidClicked</span><span class="p">];</span>
+        
+        <span class="n">it</span><span class="p">(</span><span class="s">@"Uncollected should Raised "</span><span class="p">,</span> <span class="o">^</span><span class="p">{</span>
+            <span class="n">OCMVerify</span><span class="p">([</span><span class="n">command</span> <span class="nf">execute</span><span class="p">:[</span><span class="n">OCMArg</span> <span class="nf">any</span><span class="p">]]);</span>
+        <span class="p">});</span>
+    <span class="p">});</span>
+
+    
+    <span class="n">context</span><span class="p">(</span><span class="s">@"Test NavgationItem "</span><span class="p">,</span> <span class="o">^</span><span class="p">{</span>
+        <span class="n">UIView</span><span class="o">*</span> <span class="n">title</span> <span class="o">=</span> <span class="n">detail</span><span class="p">.</span><span class="n">titleSegment</span><span class="p">;</span>
+        <span class="n">it</span><span class="p">(</span><span class="s">@"should Not Nil"</span><span class="p">,</span> <span class="o">^</span><span class="p">{</span>
+            <span class="p">[[</span><span class="n">title</span> <span class="nf">shouldNot</span><span class="p">]</span><span class="nf">beNil</span><span class="p">];</span>
+        <span class="p">});</span>
+        
+        <span class="n">it</span><span class="p">(</span><span class="s">@"should Be UISegmentControl"</span><span class="p">,</span> <span class="o">^</span><span class="p">{</span>
+            <span class="p">[[</span><span class="n">title</span> <span class="nf">should</span><span class="p">]</span><span class="nf">beKindOfClass</span><span class="p">:[</span><span class="n">UISegmentedControl</span> <span class="nf">class</span><span class="p">]];</span>
+        <span class="p">});</span>
+        <span class="n">UISegmentedControl</span><span class="o">*</span> <span class="n">segTitle</span> <span class="o">=</span> <span class="p">(</span><span class="n">UISegmentedControl</span><span class="o">*</span><span class="p">)</span><span class="n">title</span><span class="p">;</span>
+        <span class="n">it</span><span class="p">(</span><span class="s">@"should have Three Segment "</span><span class="p">,</span> <span class="o">^</span><span class="p">{</span>
+            <span class="p">[[</span><span class="n">theValue</span><span class="p">(</span><span class="n">segTitle</span><span class="p">.</span><span class="n">numberOfSegments</span><span class="p">)</span> <span class="nf">should</span><span class="p">]</span><span class="nf">equal</span><span class="p">:</span><span class="err">@</span><span class="p">(</span><span class="mi">3</span><span class="p">)];</span>
+        <span class="p">});</span>
+    <span class="p">});</span>
+    
+<span class="p">})</span>
+
+<span class="c1">//DetailNewViewController+Spec.h
+</span>
+<span class="cp">#import "DetailNewViewController.h"
+</span>
+<span class="k">@interface</span> <span class="nc">DetailNewViewController</span> <span class="p">(</span><span class="nl">Spec</span><span class="p">)</span>
+
+<span class="k">@property</span><span class="p">(</span><span class="n">nonatomic</span><span class="p">,</span><span class="n">assign</span><span class="p">)</span><span class="n">NSInteger</span>  <span class="n">isIntersting</span><span class="p">;</span>
+
+<span class="k">@property</span><span class="p">(</span><span class="n">nonatomic</span> <span class="p">,</span> <span class="n">strong</span><span class="p">)</span> <span class="n">NSDictionary</span><span class="o">*</span> <span class="n">contentData</span><span class="p">;</span>
+
+<span class="k">@property</span><span class="p">(</span><span class="n">nonatomic</span> <span class="p">,</span> <span class="n">strong</span><span class="p">)</span> <span class="n">UISegmentedControl</span><span class="o">*</span> <span class="n">titleSegment</span><span class="p">;</span>
+
+<span class="k">-</span><span class="p">(</span><span class="kt">void</span><span class="p">)</span><span class="nf">showWithDict</span><span class="p">:(</span><span class="n">NSDictionary</span><span class="o">*</span><span class="p">)</span><span class="nv">dict</span><span class="p">;</span>
+
+<span class="k">@end</span>
+
+<span class="c1">// UIView 的分类
+</span>
+<span class="cp">#import "UIView+Spec.h"
+#import "MJRefresh.h"
+</span><span class="k">@class</span> <span class="nc">MJRefreshGifHeader</span><span class="p">;</span>
+
+<span class="k">@implementation</span> <span class="nc">UIView</span> <span class="p">(</span><span class="nl">Spec</span><span class="p">)</span>
+
+
+<span class="k">+</span><span class="p">(</span><span class="kt">void</span><span class="p">)</span><span class="nf">getRefeshHeader</span><span class="p">:(</span><span class="n">UIView</span><span class="o">*</span><span class="p">)</span><span class="nv">rootView</span> <span class="nf">resultView</span><span class="p">:(</span><span class="n">UIView</span><span class="o">**</span><span class="p">)</span><span class="nv">result</span><span class="p">{</span>
+    <span class="k">for</span><span class="p">(</span><span class="n">UIView</span> <span class="o">*</span> <span class="n">view</span> <span class="k">in</span> <span class="n">rootView</span><span class="p">.</span><span class="n">subviews</span><span class="p">){</span>
+        <span class="k">if</span> <span class="p">([</span><span class="n">view</span> <span class="nf">isKindOfClass</span><span class="p">:[</span><span class="n">MJRefreshGifHeader</span> <span class="nf">class</span><span class="p">]])</span> <span class="p">{</span>
+            <span class="o">*</span><span class="n">result</span> <span class="o">=</span> <span class="n">view</span><span class="p">;</span>
+        <span class="p">}</span><span class="k">else</span> <span class="p">{</span>
+            <span class="p">[</span><span class="n">self</span> <span class="nf">getRefeshHeader</span><span class="p">:</span><span class="n">view</span> <span class="nf">resultView</span><span class="p">:</span><span class="n">result</span><span class="p">];</span>
+        <span class="p">}</span>
+    <span class="p">}</span>
+<span class="p">}</span>
+
+<span class="k">+</span><span class="p">(</span><span class="kt">void</span><span class="p">)</span><span class="nf">getViewByTitle</span><span class="p">:(</span><span class="n">NSString</span><span class="o">*</span><span class="p">)</span><span class="nv">title</span> <span class="nf">rootView</span><span class="p">:(</span><span class="n">UIView</span><span class="o">*</span><span class="p">)</span><span class="nv">rootView</span> <span class="nf">resultView</span><span class="p">:(</span><span class="n">UIView</span><span class="o">**</span><span class="p">)</span><span class="nv">result</span><span class="p">{</span>
+
+    <span class="k">for</span><span class="p">(</span><span class="n">UIView</span> <span class="o">*</span> <span class="n">view</span> <span class="k">in</span> <span class="n">rootView</span><span class="p">.</span><span class="n">subviews</span><span class="p">){</span>
+        <span class="k">if</span> <span class="p">([</span><span class="n">view</span> <span class="nf">isKindOfClass</span><span class="p">:[</span><span class="n">UIButton</span> <span class="nf">class</span><span class="p">]]</span><span class="o">&amp;&amp;</span><span class="p">[[(</span><span class="n">UIButton</span><span class="o">*</span><span class="p">)</span><span class="n">view</span> <span class="nf">titleLabel</span><span class="p">].</span><span class="n">text</span> <span class="nf">isEqualToString</span><span class="p">:</span><span class="n">title</span><span class="p">])</span> <span class="p">{</span>
+            <span class="o">*</span><span class="n">result</span> <span class="o">=</span> <span class="n">view</span><span class="p">;</span>
+        <span class="p">}</span><span class="k">else</span> <span class="p">{</span>
+           <span class="p">[</span><span class="n">self</span> <span class="nf">getViewByTitle</span><span class="p">:</span><span class="n">title</span> <span class="nf">rootView</span><span class="p">:</span><span class="n">view</span> <span class="n">resultView</span><span class="o">:</span><span class="n">result</span><span class="p">];</span>
+        <span class="p">}</span>
+    <span class="p">}</span>
+<span class="p">}</span>
+
+<span class="k">@end</span>
+</code></pre>
+</div>
+
+<p><a href="https://objccn.io/issue-15-1/">BDD实例</a></p>
+
+<h2 id="section-7">单元测试的要求</h2>
+<ul>
+  <li>测试用例应该是自解释且独立的：每个测试用例应该不依赖于其它方法的结果作为输入，没有网络请求，没有数据库操作，保证其原子性。</li>
+  <li>测试方法需要解释测试的目的：如 -(void)testObject 就不是一种规范的写法，每个方法的目标应该是单一的，大多数每个方法里都有一个断言。</li>
+  <li>断言语句需要解释测试者的用途：如XCTAssertNotNil,[xxx should]beNil],等等。</li>
+  <li>判断某个测试是否成功是检测方法影响的数据有没有合理的变化：由于单元测试是使用断言来判断的，单元测试中不会对显示层进行约束，所以限定了单元测试的范围，即引起数据的变化。</li>
+  <li>对所有暴露的属性和方法提供测试，私有方法则不必：测试私有方式可以通过子类化，设计分类，kvo等方式获取私有或者内部对象。</li>
+  <li>变化需要新测试的支持：当对外的接口的实现发生变化时，需要编写新的测试。</li>
+  <li>发现bug 并修复后，为了确保修复时成功的，需要进行单元测试。</li>
+  <li>测试有其他依赖的方法要采用 <a href="https://objccn.io/issue-15-3/">依赖注入</a>。</li>
+  <li>对每一个功能类都要做单元测试。</li>
+</ul>
+
+<h1 id="section-8">总结</h1>
+<p>在做单元测试的时候，更多思考一个对象的行为，它的接口应该如何，并减少对实现的关注。这样你会有更加健壮的代码，以及同样杰出的套件。单元测试的代码简单，但是写好单元测试却不是一件简单的事，对程序员的代码质量要求较高。从现在开始，让单元测试来帮你描述代码的行为。</p>
+
+  </div>
+
+</article>
+
+      </div>
+    </main>
+
+    <footer class="site-footer">
+
+  <div class="wrapper">
+
+    <h2 class="footer-heading">Tan</h2>
+
+    <div class="footer-col-wrapper">
+      <div class="footer-col footer-col-1">
+        <ul class="contact-list">
+          <li>Tan</li>
+          <li><a href="mailto:tanhui.master@gmail.com">tanhui.master@gmail.com</a></li>
+        </ul>
+      </div>
+
+      <div class="footer-col footer-col-2">
+        <ul class="social-media-list">
+          
+          <li>
+            <a href="https://github.com/tanhuiya"><span class="icon icon--github"><svg viewBox="0 0 16 16"><path fill="#828282" d="M7.999,0.431c-4.285,0-7.76,3.474-7.76,7.761 c0,3.428,2.223,6.337,5.307,7.363c0.388,0.071,0.53-0.168,0.53-0.374c0-0.184-0.007-0.672-0.01-1.32 c-2.159,0.469-2.614-1.04-2.614-1.04c-0.353-0.896-0.862-1.135-0.862-1.135c-0.705-0.481,0.053-0.472,0.053-0.472 c0.779,0.055,1.189,0.8,1.189,0.8c0.692,1.186,1.816,0.843,2.258,0.645c0.071-0.502,0.271-0.843,0.493-1.037 C4.86,11.425,3.049,10.76,3.049,7.786c0-0.847,0.302-1.54,0.799-2.082C3.768,5.507,3.501,4.718,3.924,3.65 c0,0,0.652-0.209,2.134,0.796C6.677,4.273,7.34,4.187,8,4.184c0.659,0.003,1.323,0.089,1.943,0.261 c1.482-1.004,2.132-0.796,2.132-0.796c0.423,1.068,0.157,1.857,0.077,2.054c0.497,0.542,0.798,1.235,0.798,2.082 c0,2.981-1.814,3.637-3.543,3.829c0.279,0.24,0.527,0.713,0.527,1.437c0,1.037-0.01,1.874-0.01,2.129 c0,0.208,0.14,0.449,0.534,0.373c3.081-1.028,5.302-3.935,5.302-7.362C15.76,3.906,12.285,0.431,7.999,0.431z"/></svg>
+</span><span class="username">tanhuiya</span></a>
+
+          </li>
+          
+
+          
+        </ul>
+      </div>
+
+      <div class="footer-col footer-col-3">
+        <p>Write an awesome description for your new site here. You can edit this line in _config.yml. It will appear in your document head meta (for Google search results) and in your feed.xml site description.
+</p>
+      </div>
+    </div>
+
+  </div>
+
+</footer>
+
+
+  </body>
+
+</html>
