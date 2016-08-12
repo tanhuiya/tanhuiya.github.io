@@ -61,22 +61,30 @@
     <h1 id="section">单元测试</h1>
 
 <h2 id="section-1">为什么需要单元测试</h2>
-<p>减少代码中的低级错误。
-有效的降低bug的出现率。
-增强可维护性。
-有助于设计：写单元测试首先给了你一个如何设计 API 的清晰视角。
-质量保证，根据我的自身经历，让一个开发者记得要测试所有的特性，在代码改变后回归测试所有的功能以及新增或移除的功能，几乎是一件不可能的事情。</p>
+<ul>
+  <li>减少代码中的低级错误。</li>
+  <li>有效的降低bug的出现率。</li>
+  <li>增强可维护性。</li>
+  <li>有助于设计：写单元测试首先给了你一个如何设计 API 的清晰视角。</li>
+  <li>质量保证，根据我的自身经历，让一个开发者记得要测试所有的特性，在代码改变后回归测试所有的功能以及新增或移除的功能，几乎是一件不可能的事情。</li>
+</ul>
 
-<p>被测试的对象，方法大概分为三种: <br />
-* 有明确的返回值，采用返回值验证法，验证返回值是否符合预期。 <br />
-* 没有返回值，但方法内部修改了对象的属性或者状态，采用状态验证法，是否符合预期。<br />
-* 依赖于外部的类，方法，会调用外部的方法，采用行为验证法。</p>
+<p>被测试的对象，方法大概分为三种:</p>
 
-<p>单元测试可能遇到的问题
-* 测试上下文有太多依赖，设计的耦合性太高。 <br />
-* 运行的速度缓慢，你的单元测试中可能存在外部系统，列入数据库，网络请求，文件系统等。 <br />
-* 改变一个地方，多处测试受影响，可能是测试设计的问题，也可能是代码的粒度拆分不够。 <br />
-* 怎样测试私有方法——私有方法有太多的行为 。</p>
+<ul>
+  <li>有明确的返回值，采用返回值验证法，验证返回值是否符合预期。</li>
+  <li>没有返回值，但方法内部修改了对象的属性或者状态，采用状态验证法，是否符合预期。</li>
+  <li>依赖于外部的类，方法，会调用外部的方法，采用行为验证法。</li>
+</ul>
+
+<p>单元测试可能遇到的问题</p>
+
+<ul>
+  <li>测试上下文有太多依赖，设计的耦合性太高。</li>
+  <li>运行的速度缓慢，你的单元测试中可能存在外部系统，列入数据库，网络请求，文件系统等。</li>
+  <li>改变一个地方，多处测试受影响，可能是测试设计的问题，也可能是代码的粒度拆分不够。</li>
+  <li>怎样测试私有方法——私有方法有太多的行为 。</li>
+</ul>
 
 <h2 id="section-2">测试哪些东西</h2>
 
@@ -120,18 +128,20 @@
 
 <p>下面是家园宝测试作业是否正常继续下载的例子：</p>
 
-<p>-(void)testResumeWithHomeWorkModel{
-//Given
-if (!self.manager) {
-self.manager = [DownLoadHomeWorkManager manager];
+<div class="highlighter-rouge"><pre class="highlight"><code>-(void)testResumeWithHomeWorkModel{
+  //Given
+  if (!self.manager) {
+      self.manager = [DownLoadHomeWorkManager manager];
+  }
+  HomeModel* homeModel = [[HomeModel alloc]init];
+  homeModel.pid = @"497";
+  //When
+  [self.manager resumeTaskWith:homeModel];
+  //Then    
+  XCTAssertEqual(homeModel.status, HomeworkStateDownloading);
 }
-HomeModel* homeModel = [[HomeModel alloc]init];
-homeModel.pid = @”497”;
-//When
-[self.manager resumeTaskWith:homeModel];
-//Then  <br />
-XCTAssertEqual(homeModel.status, HomeworkStateDownloading);
-}</p>
+</code></pre>
+</div>
 
 <h3 id="mock">Mock</h3>
 
@@ -153,273 +163,291 @@ XCTAssertEqual(homeModel.status, HomeworkStateDownloading);
 </ul>
 
 <h2 id="section-6">单元测试框架</h2>
-<p>### XCTest
-XCTest 是iOS自带的一个测试框架，相比于其他第三方集成度高，能满足大部分测试需求。但是并没有提供mock的功能。</p>
+
+<h3 id="xctest">XCTest</h3>
+
+<p>XCTest 是iOS自带的一个测试框架，相比于其他第三方集成度高，能满足大部分测试需求。但是并没有提供mock的功能。</p>
 
 <h3 id="ocmock">OCMock</h3>
 
 <p>OCMock 是一个OC的模拟对象库，他提供了关于mock 和 stub 的功能，可以和XCTest一起使用。它看起来像这样。</p>
 
-<ul>
-  <li>(void)testAddDownLoadHomeWorkModel{
-if (!self.manager) {
-self.manager = [DownLoadHomeWorkManager manager];
+<div class="highlighter-rouge"><pre class="highlight"><code>- (void)testAddDownLoadHomeWorkModel{
+   if (!self.manager) {
+       self.manager = [DownLoadHomeWorkManager manager];
+   }
+   HomeModel* homeModel = [[HomeModel alloc]init];
+   //mock 出一个dataCenter
+   id dataCenter = OCMClassMock([HomeworkDataCenter class]);
+   self.manager.dataCenter = dataCenter;
+   homeModel.pid = @"497";
+   //该方法被调用时返回1
+   OCMStub([dataCenter insertHomeModel:homeModel]).andReturn(1);
+   [self.manager addDownLoadTask:homeModel];
+   XCTAssertEqual(homeModel.status, HomeworkStateDownloading);
 }
-HomeModel* homeModel = [[HomeModel alloc]init];
-//mock 出一个dataCenter
-id dataCenter = OCMClassMock([HomeworkDataCenter class]);
-self.manager.dataCenter = dataCenter;
-homeModel.pid = @”497”;
-//该方法被调用时返回1
-OCMStub([dataCenter insertHomeModel:homeModel]).andReturn(1);
-[self.manager addDownLoadTask:homeModel];
-XCTAssertEqual(homeModel.status, HomeworkStateDownloading);
-}</li>
-</ul>
+</code></pre>
+</div>
 
 <h3 id="kiwi">Kiwi</h3>
 <p><a href="https://github.com/kiwi-bdd/Kiwi">Kiwi</a> 是一个行为驱动开发(BDD)的框架，它旨在解决具体问题，帮助开发人员确定应该测什么内容。你不应该关注于测试，而是应该关注于行为。
 该框架相比iOS自带的XCTest，它的语法更类似于自然语言，易读性强。
 Kiwi 更多使用方法点击 <a href="http://www.tuicool.com/articles/3auQbez">这里</a></p>
 
-<p>SPEC_BEGIN(First)
-describe(@”First”, ^{
-context(@”create a string”, ^{
-__block NSString * name = nil;
-beforeEach(^{
-name = @”aa”;
+<div class="highlighter-rouge"><pre class="highlight"><code>SPEC_BEGIN(First)
+   describe(@"First", ^{
+    context(@"create a string", ^{
+        __block NSString * name = nil;
+        beforeEach(^{
+            name = @"aa";
+        });
+        it(@"name should be aa", ^{
+            [[name shouldNot]beNil];
+        }); 
+    });
 });
-it(@”name should be aa”, ^{
-[[name shouldNot]beNil];
-}); 
-});
-});
-SPEC_END</p>
+SPEC_END
+</code></pre>
+</div>
 
 <h2 id="section-7">测试实例</h2>
-<p>－－－－－－－－－－－结合家园宝－－－－－－－－－－－ <br />
-首先，我们来看一下iOS的UIViewController。对代码分析时，发现大量的的逻辑都被写在 .m 文件里，我们知道，UIViewController 在 .h 里面暴露的方法很少，可是 .m 大量的逻辑单元测试又不能不做，这就相当于要对代码中的private 方法进行测试。
+<p>－－－－－－－－－－－结合家园宝－－－－－－－－－－－</p>
+
+<p><a href="https://www.processon.com/diagraming/57ac4f86e4b066d99bdf5612">家园宝结构分析图</a></p>
+
+<p>首先，我们来看一下iOS的UIViewController。对代码分析时，发现大量的的逻辑都被写在 .m 文件里，我们知道，UIViewController 在 .h 里面暴露的方法很少，可是 .m 大量的逻辑单元测试又不能不做，这就相当于要对代码中的private 方法进行测试。
 进一步分析发现，如果在ViewController 中 添加一个ViewModel层，将UIViewController 里的业务逻辑放入中间层，该层可以负责网络的请求，数据的处理等。一方面会使ViewController 更加简洁和实现单一原则，另一方面保证了逻辑的可能性，该中间层会对ViewController 暴露一些接口。在MVC的设计模式中，ViewController 承受了太多的任务导致测试的难度增加，将ViewController 拆分（MVVM）就会更加有利于单元测试。</p>
 
-<p>describe(@”Bind ViewModel”, ^{
-__block WrapJSMessageView* replyView = nil;
-__block WrapJSMessageViewModel* replyViewModel = nil;
-replyView = [[WrapJSMessageView alloc]init];
-replyViewModel = [[WrapJSMessageViewModel alloc]init];
-replyView.replyViewModel = replyViewModel;</p>
-
-<p>context(@”Test Text Binding  “, ^{
-it(@”Image Should NotNil”, ^{
-[[replyViewModel.image shouldNot]beNil];
-});</p>
-
-<p>//select Image;
-{
-UIImage* image = [UIImage new];
-NSDictionary* dict = @{};
-[dict stub:@selector(objectForKey:) andReturn:image withArguments:@”UIImagePickerControllerOriginalImage”];
-[replyView imagePickerController:[UIImagePickerController new] didFinishPickingMediaWithInfo:dict];
-it(@”select Image”, ^{
-[[replyViewModel.image should]equal:image];
-});
-}</p>
-
-<p>// clear text
-{
-it(@”After reset Image should Be reset”, ^{
-[[replyView should]receive:@selector(resetReplyView)];
-replyViewModel.text = nil;
-});
-}</p>
-
-<p>UIButton* sendBtn = nil;
-[UIView getViewByTitle:@”发送” rootView:replyView resultView:&amp;sendBtn];</p>
-
-<p>// test Click ReplyBtn
-{
-it(@”Get Send Btn”, ^{<br />
-[[sendBtn shouldNot]beNil];
-});
-}
-// Send Btn should Be disable
-{
-it(@”Send Btn should Disable”, ^{
-[[theValue(sendBtn.enabled)should] beFalse];
-});
-}</p>
-
-<p>//Send Btn should Be disable
-{
-it(@”Send Btn should Enable”, ^{
-replyViewModel.text = @”222”;
-[[theValue(sendBtn.enabled)should] beFalse];
-});
-}</p>
-
-<p>// ReplyBtnClicked
-{
-[[replyViewModel.replyCommand should]receive:@selector(execute:)];</p>
-
-<p>it(@”Send Should Invalid”, ^{
-[sendBtn sendActionsForControlEvents:UIControlEventTouchUpInside];
-});
-}</p>
-
-<p>});</p>
-
-<p>})</p>
+<div class="highlighter-rouge"><pre class="highlight"><code>describe(@"Bind ViewModel", ^{
+    __block WrapJSMessageView* replyView = nil;
+    __block WrapJSMessageViewModel* replyViewModel = nil;
+    replyView = [[WrapJSMessageView alloc]init];
+    replyViewModel = [[WrapJSMessageViewModel alloc]init];
+    replyView.replyViewModel = replyViewModel;
+    
+    context(@"Test Text Binding  ", ^{
+        it(@"Image Should NotNil", ^{
+            [[replyViewModel.image shouldNot]beNil];
+        });
+        
+        //select Image;
+        {
+            UIImage* image = [UIImage new];
+            NSDictionary* dict = @{};
+            [dict stub:@selector(objectForKey:) andReturn:image withArguments:@"UIImagePickerControllerOriginalImage"];
+            [replyView imagePickerController:[UIImagePickerController new] didFinishPickingMediaWithInfo:dict];
+            it(@"select Image", ^{
+                [[replyViewModel.image should]equal:image];
+            });
+        }
+        
+        // clear text
+        {
+            it(@"After reset Image should Be reset", ^{
+                [[replyView should]receive:@selector(resetReplyView)];
+                replyViewModel.text = nil;
+            });
+        }
+        
+        
+        UIButton* sendBtn = nil;
+        [UIView getViewByTitle:@"发送" rootView:replyView resultView:&amp;sendBtn];
+        
+        // test Click ReplyBtn
+        {
+            it(@"Get Send Btn", ^{
+                [[sendBtn shouldNot]beNil];
+            });
+        }
+        // Send Btn should Be disable
+        {
+            it(@"Send Btn should Disable", ^{
+                [[theValue(sendBtn.enabled)should] beFalse];
+            });
+        }
+        
+        //Send Btn should Be disable
+        {
+            it(@"Send Btn should Enable", ^{
+                replyViewModel.text = @"222";
+                [[theValue(sendBtn.enabled)should] beFalse];
+            });
+        }
+        
+        // ReplyBtnClicked
+        {
+            [[replyViewModel.replyCommand should]receive:@selector(execute:)];
+            
+            it(@"Send Should Invalid", ^{
+                [sendBtn sendActionsForControlEvents:UIControlEventTouchUpInside];
+            });
+        }
+        
+    });
+    
+})
+</code></pre>
+</div>
 
 <p>DetailNewViewController</p>
 
-<p>describe(@”DetailNewViewController”, ^{
-__block DetailNewViewController* detail = [[DetailNewViewController alloc]init];
-context(@”initial with valid post_id”, ^{</p>
+<div class="highlighter-rouge"><pre class="highlight"><code>describe(@"DetailNewViewController", ^{
+    __block DetailNewViewController* detail = [[DetailNewViewController alloc]init];
+    context(@"initial with valid post_id", ^{
+        
+        id viewModel = OCMClassMock([PostDetailViewModel class]);
+        detail.viewModel = viewModel;
+        detail.postid = @"100";
+        it(@"initWithPostid should be invoked", ^{
+            OCMVerify([viewModel initWithPostId:[OCMArg any]]);
+        });
+    });
+    
+    context(@"Inital", ^{
+        
+        PostDetailViewModel* viewModel = [[PostDetailViewModel alloc]initWithPostId:@"1"];
+        
+        // 测试获取帖子数据
+        {
+            
+            MJRefreshGifHeader* header = nil;
+            //获取header
+            [UIView getRefeshHeader:detail.view resultView:&amp;header];
+            it(@"RefreshController should not be nil", ^{
+                [[header shouldNot]beNil];
+            });
+            
+            
+            RACCommand* fetchRawCommand = OCMClassMock([RACCommand class]);
+            viewModel.fetchRawDataCommand = fetchRawCommand;
+            
+            [detail viewDidLoad];
+            it(@"should Request Post Data", ^{
+                OCMVerify([header beginRefreshing]);
+            });
+        }
+        
+        
+        //测试获取评论列表
+        
+        {
+            NSDictionary* returnData = @{
+                                         @"ret":@(1),
+                                         @"retCode":@(1),
+                                         };
+            
+            detail.viewModel = viewModel;
+            id fetchReplyCommand = OCMClassMock([RACCommand class]);
+            viewModel.fetchReplyListCommand = fetchReplyCommand;
+            
+            [detail showWithDict:returnData];
+            it(@"Then Request ReplyList Data", ^{
+                OCMVerify([fetchReplyCommand execute:[OCMArg any]]);
+            });
+        }
+    });
+    
+    context(@"Test Click Collect Btn", ^{
+        
+        detail.isIntersting = NO;
+        detail.contentData = [NSDictionary mock];
+        PostDetailViewModel* viewModel = [[PostDetailViewModel alloc]init];
+        id command = OCMClassMock([RACCommand class]);
+        viewModel.collectCommand = command;
+        
+        detail.viewModel = viewModel;
+        [detail soucangBtnDidClicked];
+        
+        it(@"Send NetWork should Raised ", ^{
+            OCMVerify([command execute:[OCMArg any]]);
+        });
+        
+    });
+    
+    context(@"Test Click Uncollect Btn", ^{
+        detail.isIntersting = YES;
+        detail.contentData = [NSDictionary mock];
+        PostDetailViewModel* viewModel = [[PostDetailViewModel alloc]init];
+        id command = OCMClassMock([RACCommand class]);
+        viewModel.unCollectCommand = command;
+        
+        detail.viewModel = viewModel;
+        [detail soucangBtnDidClicked];
+        
+        it(@"Uncollected should Raised ", ^{
+            OCMVerify([command execute:[OCMArg any]]);
+        });
+    });
+    
+    
+    context(@"Test NavgationItem ", ^{
+        UIView* title = detail.titleSegment;
+        it(@"should Not Nil", ^{
+            [[title shouldNot]beNil];
+        });
+        
+        it(@"should Be UISegmentControl", ^{
+            [[title should]beKindOfClass:[UISegmentedControl class]];
+        });
+        UISegmentedControl* segTitle = (UISegmentedControl*)title;
+        it(@"should have Three Segment ", ^{
+            [[theValue(segTitle.numberOfSegments) should]equal:@(3)];
+        });
+    });
+    
+})
+</code></pre>
+</div>
 
-<p>id viewModel = OCMClassMock([PostDetailViewModel class]);
-detail.viewModel = viewModel;
-detail.postid = @”100”;
-it(@”initWithPostid should be invoked”, ^{
-OCMVerify([viewModel initWithPostId:[OCMArg any]]);
-});
-});</p>
+<p>DetailNewViewController+Spec.h</p>
 
-<p>context(@”Inital”, ^{</p>
-
-<p>PostDetailViewModel* viewModel = [[PostDetailViewModel alloc]initWithPostId:@”1”];</p>
-
-<p>// 测试获取帖子数据
-{</p>
-
-<p>MJRefreshGifHeader* header = nil;
-//获取header
-[UIView getRefeshHeader:detail.view resultView:&amp;header];
-it(@”RefreshController should not be nil”, ^{
-[[header shouldNot]beNil];
-});</p>
-
-<p>RACCommand* fetchRawCommand = OCMClassMock([RACCommand class]);
-viewModel.fetchRawDataCommand = fetchRawCommand;</p>
-
-<p>[detail viewDidLoad];
-it(@”should Request Post Data”, ^{
-OCMVerify([header beginRefreshing]);
-});
-}</p>
-
-<p>//测试获取评论列表</p>
-
-<p>{
-NSDictionary* returnData = @{
-@”ret”:@(1),
-@”retCode”:@(1),
-};</p>
-
-<p>detail.viewModel = viewModel;
-id fetchReplyCommand = OCMClassMock([RACCommand class]);
-viewModel.fetchReplyListCommand = fetchReplyCommand;</p>
-
-<p>[detail showWithDict:returnData];
-it(@”Then Request ReplyList Data”, ^{
-OCMVerify([fetchReplyCommand execute:[OCMArg any]]);
-});
-}
-});</p>
-
-<p>context(@”Test Click Collect Btn”, ^{</p>
-
-<p>detail.isIntersting = NO;
-detail.contentData = [NSDictionary mock];
-PostDetailViewModel* viewModel = [[PostDetailViewModel alloc]init];
-id command = OCMClassMock([RACCommand class]);
-viewModel.collectCommand = command;</p>
-
-<p>detail.viewModel = viewModel;
-[detail soucangBtnDidClicked];</p>
-
-<p>it(@”Send NetWork should Raised “, ^{
-OCMVerify([command execute:[OCMArg any]]);
-});</p>
-
-<p>});</p>
-
-<p>context(@”Test Click Uncollect Btn”, ^{
-detail.isIntersting = YES;
-detail.contentData = [NSDictionary mock];
-PostDetailViewModel* viewModel = [[PostDetailViewModel alloc]init];
-id command = OCMClassMock([RACCommand class]);
-viewModel.unCollectCommand = command;</p>
-
-<p>detail.viewModel = viewModel;
-[detail soucangBtnDidClicked];</p>
-
-<p>it(@”Uncollected should Raised “, ^{
-OCMVerify([command execute:[OCMArg any]]);
-});
-});</p>
-
-<p>context(@”Test NavgationItem “, ^{
-UIView* title = detail.titleSegment;
-it(@”should Not Nil”, ^{
-[[title shouldNot]beNil];
-});</p>
-
-<p>it(@”should Be UISegmentControl”, ^{
-[[title should]beKindOfClass:[UISegmentedControl class]];
-});
-UISegmentedControl* segTitle = (UISegmentedControl*)title;
-it(@”should have Three Segment “, ^{
-[[theValue(segTitle.numberOfSegments) should]equal:@(3)];
-});
-});</p>
-
-<p>})</p>
-
-<p>//DetailNewViewController+Spec.h</p>
-
-<p>#import “DetailNewViewController.h”</p>
-
-<p>@interface DetailNewViewController (Spec)</p>
-
-<p>@property(nonatomic,assign)NSInteger  isIntersting;</p>
-
-<p>@property(nonatomic , strong) NSDictionary* contentData;</p>
-
-<p>@property(nonatomic , strong) UISegmentedControl* titleSegment;</p>
-
-<p>-(void)showWithDict:(NSDictionary*)dict;</p>
-
-<p>@end</p>
+<div class="highlighter-rouge"><pre class="highlight"><code><span class="cp">#import "DetailNewViewController.h"
+</span>                   
+<span class="k">@interface</span> <span class="nc">DetailNewViewController</span> <span class="p">(</span><span class="nl">Spec</span><span class="p">)</span>
+   
+<span class="k">@property</span><span class="p">(</span><span class="n">nonatomic</span><span class="p">,</span><span class="n">assign</span><span class="p">)</span><span class="n">NSInteger</span>  <span class="n">isIntersting</span><span class="p">;</span>
+   
+<span class="k">@property</span><span class="p">(</span><span class="n">nonatomic</span> <span class="p">,</span> <span class="n">strong</span><span class="p">)</span> <span class="n">NSDictionary</span><span class="o">*</span> <span class="n">contentData</span><span class="p">;</span>
+   
+<span class="k">@property</span><span class="p">(</span><span class="n">nonatomic</span> <span class="p">,</span> <span class="n">strong</span><span class="p">)</span> <span class="n">UISegmentedControl</span><span class="o">*</span> <span class="n">titleSegment</span><span class="p">;</span>
+   
+<span class="k">-</span><span class="p">(</span><span class="kt">void</span><span class="p">)</span><span class="nf">showWithDict</span><span class="p">:(</span><span class="n">NSDictionary</span><span class="o">*</span><span class="p">)</span><span class="nv">dict</span><span class="p">;</span>
+   
+<span class="k">@end</span>
+</code></pre>
+</div>
 
 <p>// UIView 的分类</p>
 
-<p>#import “UIView+Spec.h”
-#import “MJRefresh.h”
-@class MJRefreshGifHeader;</p>
-
-<p>@implementation UIView (Spec)</p>
-
-<p>+(void)getRefeshHeader:(UIView*)rootView resultView:(UIView**)result{
-for(UIView * view in rootView.subviews){
-if ([view isKindOfClass:[MJRefreshGifHeader class]]) {
-*result = view;
-}else {
-[self getRefeshHeader:view resultView:result];
-}
-}
-}</p>
-
-<p>+(void)getViewByTitle:(NSString<em>)title rootView:(UIView</em>)rootView resultView:(UIView**)result{</p>
-
-<p>for(UIView * view in rootView.subviews){
-if ([view isKindOfClass:[UIButton class]]&amp;&amp;[[(UIButton*)view titleLabel].text isEqualToString:title]) {
-*result = view;
-}else {
-[self getViewByTitle:title rootView:view resultView:result];
-}
-}
-}</p>
-
-<p>@end</p>
+<div class="highlighter-rouge"><pre class="highlight"><code><span class="cp">#import "UIView+Spec.h"
+#import "MJRefresh.h"
+</span><span class="k">@class</span> <span class="nc">MJRefreshGifHeader</span><span class="p">;</span>
+   
+<span class="k">@implementation</span> <span class="nc">UIView</span> <span class="p">(</span><span class="nl">Spec</span><span class="p">)</span>
+   
+<span class="k">+</span><span class="p">(</span><span class="kt">void</span><span class="p">)</span><span class="nf">getRefeshHeader</span><span class="p">:(</span><span class="n">UIView</span><span class="o">*</span><span class="p">)</span><span class="nv">rootView</span> <span class="nf">resultView</span><span class="p">:(</span><span class="n">UIView</span><span class="o">**</span><span class="p">)</span><span class="nv">result</span><span class="p">{</span>
+   <span class="k">for</span><span class="p">(</span><span class="n">UIView</span> <span class="o">*</span> <span class="n">view</span> <span class="k">in</span> <span class="n">rootView</span><span class="p">.</span><span class="n">subviews</span><span class="p">){</span>
+       <span class="k">if</span> <span class="p">([</span><span class="n">view</span> <span class="nf">isKindOfClass</span><span class="p">:[</span><span class="n">MJRefreshGifHeader</span> <span class="nf">class</span><span class="p">]])</span> <span class="p">{</span>
+           <span class="o">*</span><span class="n">result</span> <span class="o">=</span> <span class="n">view</span><span class="p">;</span>
+       <span class="p">}</span><span class="k">else</span> <span class="p">{</span>
+           <span class="p">[</span><span class="n">self</span> <span class="nf">getRefeshHeader</span><span class="p">:</span><span class="n">view</span> <span class="nf">resultView</span><span class="p">:</span><span class="n">result</span><span class="p">];</span>
+       <span class="p">}</span>
+   <span class="p">}</span>
+<span class="p">}</span>
+   
+<span class="k">+</span><span class="p">(</span><span class="kt">void</span><span class="p">)</span><span class="nf">getViewByTitle</span><span class="p">:(</span><span class="n">NSString</span><span class="o">*</span><span class="p">)</span><span class="nv">title</span> <span class="nf">rootView</span><span class="p">:(</span><span class="n">UIView</span><span class="o">*</span><span class="p">)</span><span class="nv">rootView</span> <span class="nf">resultView</span><span class="p">:(</span><span class="n">UIView</span><span class="o">**</span><span class="p">)</span><span class="nv">result</span><span class="p">{</span>
+   
+   <span class="k">for</span><span class="p">(</span><span class="n">UIView</span> <span class="o">*</span> <span class="n">view</span> <span class="k">in</span> <span class="n">rootView</span><span class="p">.</span><span class="n">subviews</span><span class="p">){</span>
+       <span class="k">if</span> <span class="p">([</span><span class="n">view</span> <span class="nf">isKindOfClass</span><span class="p">:[</span><span class="n">UIButton</span> <span class="nf">class</span><span class="p">]]</span><span class="o">&amp;&amp;</span><span class="p">[[(</span><span class="n">UIButton</span><span class="o">*</span><span class="p">)</span><span class="n">view</span> <span class="nf">titleLabel</span><span class="p">].</span><span class="n">text</span> <span class="nf">isEqualToString</span><span class="p">:</span><span class="n">title</span><span class="p">])</span> <span class="p">{</span>
+           <span class="o">*</span><span class="n">result</span> <span class="o">=</span> <span class="n">view</span><span class="p">;</span>
+       <span class="p">}</span><span class="k">else</span> <span class="p">{</span>
+           <span class="p">[</span><span class="n">self</span> <span class="nf">getViewByTitle</span><span class="p">:</span><span class="n">title</span> <span class="nf">rootView</span><span class="p">:</span><span class="n">view</span> <span class="n">resultView</span><span class="o">:</span><span class="n">result</span><span class="p">];</span>
+       <span class="p">}</span>
+   <span class="p">}</span>
+<span class="p">}</span>
+<span class="k">@end</span>
+</code></pre>
+</div>
 
 <p><a href="https://objccn.io/issue-15-1/">BDD实例</a></p>
 

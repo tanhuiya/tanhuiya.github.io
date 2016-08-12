@@ -9,20 +9,22 @@ categories: jekyll update
 # 单元测试
 
 ## 为什么需要单元测试
-减少代码中的低级错误。
-有效的降低bug的出现率。
-增强可维护性。
-有助于设计：写单元测试首先给了你一个如何设计 API 的清晰视角。
-质量保证，根据我的自身经历，让一个开发者记得要测试所有的特性，在代码改变后回归测试所有的功能以及新增或移除的功能，几乎是一件不可能的事情。
+* 减少代码中的低级错误。
+* 有效的降低bug的出现率。
+* 增强可维护性。
+* 有助于设计：写单元测试首先给了你一个如何设计 API 的清晰视角。
+* 质量保证，根据我的自身经历，让一个开发者记得要测试所有的特性，在代码改变后回归测试所有的功能以及新增或移除的功能，几乎是一件不可能的事情。
 
 
 被测试的对象，方法大概分为三种:   
+
 * 有明确的返回值，采用返回值验证法，验证返回值是否符合预期。   
 * 没有返回值，但方法内部修改了对象的属性或者状态，采用状态验证法，是否符合预期。  
 * 依赖于外部的类，方法，会调用外部的方法，采用行为验证法。   
 
 
-单元测试可能遇到的问题
+单元测试可能遇到的问题  
+
 * 测试上下文有太多依赖，设计的耦合性太高。   
 * 运行的速度缓慢，你的单元测试中可能存在外部系统，列入数据库，网络请求，文件系统等。   
 * 改变一个地方，多处测试受影响，可能是测试设计的问题，也可能是代码的粒度拆分不够。   
@@ -67,18 +69,18 @@ categories: jekyll update
 
 下面是家园宝测试作业是否正常继续下载的例子：
 
--(void)testResumeWithHomeWorkModel{
-//Given
-if (!self.manager) {
-self.manager = [DownLoadHomeWorkManager manager];
-}
-HomeModel* homeModel = [[HomeModel alloc]init];
-homeModel.pid = @"497";
-//When
-[self.manager resumeTaskWith:homeModel];
-//Then    
-XCTAssertEqual(homeModel.status, HomeworkStateDownloading);
-}
+	-(void)testResumeWithHomeWorkModel{
+	  //Given
+	  if (!self.manager) {
+	      self.manager = [DownLoadHomeWorkManager manager];
+	  }
+	  HomeModel* homeModel = [[HomeModel alloc]init];
+	  homeModel.pid = @"497";
+	  //When
+	  [self.manager resumeTaskWith:homeModel];
+	  //Then    
+	  XCTAssertEqual(homeModel.status, HomeworkStateDownloading);
+	}
 
 ### Mock
 
@@ -98,276 +100,280 @@ XCTAssertEqual(homeModel.status, HomeworkStateDownloading);
 * 单元测试需要描述和记录代码需要实现的所有需求。
 
 ## 单元测试框架
+
 ### XCTest
+
 XCTest 是iOS自带的一个测试框架，相比于其他第三方集成度高，能满足大部分测试需求。但是并没有提供mock的功能。
 
 ### OCMock
 
 OCMock 是一个OC的模拟对象库，他提供了关于mock 和 stub 的功能，可以和XCTest一起使用。它看起来像这样。
 
-- (void)testAddDownLoadHomeWorkModel{
-if (!self.manager) {
-self.manager = [DownLoadHomeWorkManager manager];
-}
-HomeModel* homeModel = [[HomeModel alloc]init];
-//mock 出一个dataCenter
-id dataCenter = OCMClassMock([HomeworkDataCenter class]);
-self.manager.dataCenter = dataCenter;
-homeModel.pid = @"497";
-//该方法被调用时返回1
-OCMStub([dataCenter insertHomeModel:homeModel]).andReturn(1);
-[self.manager addDownLoadTask:homeModel];
-XCTAssertEqual(homeModel.status, HomeworkStateDownloading);
-}
+	- (void)testAddDownLoadHomeWorkModel{
+	   if (!self.manager) {
+	       self.manager = [DownLoadHomeWorkManager manager];
+	   }
+	   HomeModel* homeModel = [[HomeModel alloc]init];
+	   //mock 出一个dataCenter
+	   id dataCenter = OCMClassMock([HomeworkDataCenter class]);
+	   self.manager.dataCenter = dataCenter;
+	   homeModel.pid = @"497";
+	   //该方法被调用时返回1
+	   OCMStub([dataCenter insertHomeModel:homeModel]).andReturn(1);
+	   [self.manager addDownLoadTask:homeModel];
+	   XCTAssertEqual(homeModel.status, HomeworkStateDownloading);
+	}
 
 ### Kiwi
 [Kiwi](https://github.com/kiwi-bdd/Kiwi) 是一个行为驱动开发(BDD)的框架，它旨在解决具体问题，帮助开发人员确定应该测什么内容。你不应该关注于测试，而是应该关注于行为。
 该框架相比iOS自带的XCTest，它的语法更类似于自然语言，易读性强。
 Kiwi 更多使用方法点击 [这里](http://www.tuicool.com/articles/3auQbez)
 
-SPEC_BEGIN(First)
-describe(@"First", ^{
-context(@"create a string", ^{
-__block NSString * name = nil;
-beforeEach(^{
-name = @"aa";
-});
-it(@"name should be aa", ^{
-[[name shouldNot]beNil];
-}); 
-});
-});
-SPEC_END
+    SPEC_BEGIN(First)
+       describe(@"First", ^{
+        context(@"create a string", ^{
+            __block NSString * name = nil;
+            beforeEach(^{
+                name = @"aa";
+            });
+            it(@"name should be aa", ^{
+                [[name shouldNot]beNil];
+            }); 
+        });
+    });
+    SPEC_END
 
 ## 测试实例
-－－－－－－－－－－－结合家园宝－－－－－－－－－－－   
+－－－－－－－－－－－结合家园宝－－－－－－－－－－－ 
+
+[家园宝结构分析图](https://www.processon.com/diagraming/57ac4f86e4b066d99bdf5612)
+  
 首先，我们来看一下iOS的UIViewController。对代码分析时，发现大量的的逻辑都被写在 .m 文件里，我们知道，UIViewController 在 .h 里面暴露的方法很少，可是 .m 大量的逻辑单元测试又不能不做，这就相当于要对代码中的private 方法进行测试。
 进一步分析发现，如果在ViewController 中 添加一个ViewModel层，将UIViewController 里的业务逻辑放入中间层，该层可以负责网络的请求，数据的处理等。一方面会使ViewController 更加简洁和实现单一原则，另一方面保证了逻辑的可能性，该中间层会对ViewController 暴露一些接口。在MVC的设计模式中，ViewController 承受了太多的任务导致测试的难度增加，将ViewController 拆分（MVVM）就会更加有利于单元测试。
-
-describe(@"Bind ViewModel", ^{
-__block WrapJSMessageView* replyView = nil;
-__block WrapJSMessageViewModel* replyViewModel = nil;
-replyView = [[WrapJSMessageView alloc]init];
-replyViewModel = [[WrapJSMessageViewModel alloc]init];
-replyView.replyViewModel = replyViewModel;
-
-context(@"Test Text Binding  ", ^{
-it(@"Image Should NotNil", ^{
-[[replyViewModel.image shouldNot]beNil];
-});
-
-//select Image;
-{
-UIImage* image = [UIImage new];
-NSDictionary* dict = @{};
-[dict stub:@selector(objectForKey:) andReturn:image withArguments:@"UIImagePickerControllerOriginalImage"];
-[replyView imagePickerController:[UIImagePickerController new] didFinishPickingMediaWithInfo:dict];
-it(@"select Image", ^{
-[[replyViewModel.image should]equal:image];
-});
-}
-
-// clear text
-{
-it(@"After reset Image should Be reset", ^{
-[[replyView should]receive:@selector(resetReplyView)];
-replyViewModel.text = nil;
-});
-}
-
-
-UIButton* sendBtn = nil;
-[UIView getViewByTitle:@"发送" rootView:replyView resultView:&sendBtn];
-
-// test Click ReplyBtn
-{
-it(@"Get Send Btn", ^{  
-[[sendBtn shouldNot]beNil];
-});
-}
-// Send Btn should Be disable
-{
-it(@"Send Btn should Disable", ^{
-[[theValue(sendBtn.enabled)should] beFalse];
-});
-}
-
-//Send Btn should Be disable
-{
-it(@"Send Btn should Enable", ^{
-replyViewModel.text = @"222";
-[[theValue(sendBtn.enabled)should] beFalse];
-});
-}
-
-// ReplyBtnClicked
-{
-[[replyViewModel.replyCommand should]receive:@selector(execute:)];
-
-it(@"Send Should Invalid", ^{
-[sendBtn sendActionsForControlEvents:UIControlEventTouchUpInside];
-});
-}
-
-});
-
-})
-
+                   
+    describe(@"Bind ViewModel", ^{
+        __block WrapJSMessageView* replyView = nil;
+        __block WrapJSMessageViewModel* replyViewModel = nil;
+        replyView = [[WrapJSMessageView alloc]init];
+        replyViewModel = [[WrapJSMessageViewModel alloc]init];
+        replyView.replyViewModel = replyViewModel;
+        
+        context(@"Test Text Binding  ", ^{
+            it(@"Image Should NotNil", ^{
+                [[replyViewModel.image shouldNot]beNil];
+            });
+            
+            //select Image;
+            {
+                UIImage* image = [UIImage new];
+                NSDictionary* dict = @{};
+                [dict stub:@selector(objectForKey:) andReturn:image withArguments:@"UIImagePickerControllerOriginalImage"];
+                [replyView imagePickerController:[UIImagePickerController new] didFinishPickingMediaWithInfo:dict];
+                it(@"select Image", ^{
+                    [[replyViewModel.image should]equal:image];
+                });
+            }
+            
+            // clear text
+            {
+                it(@"After reset Image should Be reset", ^{
+                    [[replyView should]receive:@selector(resetReplyView)];
+                    replyViewModel.text = nil;
+                });
+            }
+            
+            
+            UIButton* sendBtn = nil;
+            [UIView getViewByTitle:@"发送" rootView:replyView resultView:&sendBtn];
+            
+            // test Click ReplyBtn
+            {
+                it(@"Get Send Btn", ^{
+                    [[sendBtn shouldNot]beNil];
+                });
+            }
+            // Send Btn should Be disable
+            {
+                it(@"Send Btn should Disable", ^{
+                    [[theValue(sendBtn.enabled)should] beFalse];
+                });
+            }
+            
+            //Send Btn should Be disable
+            {
+                it(@"Send Btn should Enable", ^{
+                    replyViewModel.text = @"222";
+                    [[theValue(sendBtn.enabled)should] beFalse];
+                });
+            }
+            
+            // ReplyBtnClicked
+            {
+                [[replyViewModel.replyCommand should]receive:@selector(execute:)];
+                
+                it(@"Send Should Invalid", ^{
+                    [sendBtn sendActionsForControlEvents:UIControlEventTouchUpInside];
+                });
+            }
+            
+        });
+        
+    })
+                       
 DetailNewViewController
 
-describe(@"DetailNewViewController", ^{
-__block DetailNewViewController* detail = [[DetailNewViewController alloc]init];
-context(@"initial with valid post_id", ^{
-
-id viewModel = OCMClassMock([PostDetailViewModel class]);
-detail.viewModel = viewModel;
-detail.postid = @"100";
-it(@"initWithPostid should be invoked", ^{
-OCMVerify([viewModel initWithPostId:[OCMArg any]]);
-});
-});
-
-context(@"Inital", ^{
-
-PostDetailViewModel* viewModel = [[PostDetailViewModel alloc]initWithPostId:@"1"];
-
-// 测试获取帖子数据
-{
-
-MJRefreshGifHeader* header = nil;
-//获取header
-[UIView getRefeshHeader:detail.view resultView:&header];
-it(@"RefreshController should not be nil", ^{
-[[header shouldNot]beNil];
-});
-
-
-RACCommand* fetchRawCommand = OCMClassMock([RACCommand class]);
-viewModel.fetchRawDataCommand = fetchRawCommand;
-
-[detail viewDidLoad];
-it(@"should Request Post Data", ^{
-OCMVerify([header beginRefreshing]);
-});
-}
-
-
-//测试获取评论列表
-
-{
-NSDictionary* returnData = @{
-@"ret":@(1),
-@"retCode":@(1),
-};
-
-detail.viewModel = viewModel;
-id fetchReplyCommand = OCMClassMock([RACCommand class]);
-viewModel.fetchReplyListCommand = fetchReplyCommand;
-
-[detail showWithDict:returnData];
-it(@"Then Request ReplyList Data", ^{
-OCMVerify([fetchReplyCommand execute:[OCMArg any]]);
-});
-}
-});
-
-context(@"Test Click Collect Btn", ^{
-
-detail.isIntersting = NO;
-detail.contentData = [NSDictionary mock];
-PostDetailViewModel* viewModel = [[PostDetailViewModel alloc]init];
-id command = OCMClassMock([RACCommand class]);
-viewModel.collectCommand = command;
-
-detail.viewModel = viewModel;
-[detail soucangBtnDidClicked];
-
-it(@"Send NetWork should Raised ", ^{
-OCMVerify([command execute:[OCMArg any]]);
-});
-
-});
-
-context(@"Test Click Uncollect Btn", ^{
-detail.isIntersting = YES;
-detail.contentData = [NSDictionary mock];
-PostDetailViewModel* viewModel = [[PostDetailViewModel alloc]init];
-id command = OCMClassMock([RACCommand class]);
-viewModel.unCollectCommand = command;
-
-detail.viewModel = viewModel;
-[detail soucangBtnDidClicked];
-
-it(@"Uncollected should Raised ", ^{
-OCMVerify([command execute:[OCMArg any]]);
-});
-});
-
-
-context(@"Test NavgationItem ", ^{
-UIView* title = detail.titleSegment;
-it(@"should Not Nil", ^{
-[[title shouldNot]beNil];
-});
-
-it(@"should Be UISegmentControl", ^{
-[[title should]beKindOfClass:[UISegmentedControl class]];
-});
-UISegmentedControl* segTitle = (UISegmentedControl*)title;
-it(@"should have Three Segment ", ^{
-[[theValue(segTitle.numberOfSegments) should]equal:@(3)];
-});
-});
-
-})
-
-//DetailNewViewController+Spec.h
-
-#import "DetailNewViewController.h"
-
-@interface DetailNewViewController (Spec)
-
-@property(nonatomic,assign)NSInteger  isIntersting;
-
-@property(nonatomic , strong) NSDictionary* contentData;
-
-@property(nonatomic , strong) UISegmentedControl* titleSegment;
-
--(void)showWithDict:(NSDictionary*)dict;
-
-@end
-
+	describe(@"DetailNewViewController", ^{
+	    __block DetailNewViewController* detail = [[DetailNewViewController alloc]init];
+	    context(@"initial with valid post_id", ^{
+            
+            id viewModel = OCMClassMock([PostDetailViewModel class]);
+            detail.viewModel = viewModel;
+            detail.postid = @"100";
+            it(@"initWithPostid should be invoked", ^{
+                OCMVerify([viewModel initWithPostId:[OCMArg any]]);
+            });
+        });
+        
+        context(@"Inital", ^{
+            
+            PostDetailViewModel* viewModel = [[PostDetailViewModel alloc]initWithPostId:@"1"];
+            
+            // 测试获取帖子数据
+            {
+                
+                MJRefreshGifHeader* header = nil;
+                //获取header
+                [UIView getRefeshHeader:detail.view resultView:&header];
+                it(@"RefreshController should not be nil", ^{
+                    [[header shouldNot]beNil];
+                });
+                
+                
+                RACCommand* fetchRawCommand = OCMClassMock([RACCommand class]);
+                viewModel.fetchRawDataCommand = fetchRawCommand;
+                
+                [detail viewDidLoad];
+                it(@"should Request Post Data", ^{
+                    OCMVerify([header beginRefreshing]);
+                });
+            }
+            
+            
+            //测试获取评论列表
+            
+            {
+                NSDictionary* returnData = @{
+                                             @"ret":@(1),
+                                             @"retCode":@(1),
+                                             };
+                
+                detail.viewModel = viewModel;
+                id fetchReplyCommand = OCMClassMock([RACCommand class]);
+                viewModel.fetchReplyListCommand = fetchReplyCommand;
+                
+                [detail showWithDict:returnData];
+                it(@"Then Request ReplyList Data", ^{
+                    OCMVerify([fetchReplyCommand execute:[OCMArg any]]);
+                });
+            }
+        });
+        
+        context(@"Test Click Collect Btn", ^{
+            
+            detail.isIntersting = NO;
+            detail.contentData = [NSDictionary mock];
+            PostDetailViewModel* viewModel = [[PostDetailViewModel alloc]init];
+            id command = OCMClassMock([RACCommand class]);
+            viewModel.collectCommand = command;
+            
+            detail.viewModel = viewModel;
+            [detail soucangBtnDidClicked];
+            
+            it(@"Send NetWork should Raised ", ^{
+                OCMVerify([command execute:[OCMArg any]]);
+            });
+            
+        });
+        
+        context(@"Test Click Uncollect Btn", ^{
+            detail.isIntersting = YES;
+            detail.contentData = [NSDictionary mock];
+            PostDetailViewModel* viewModel = [[PostDetailViewModel alloc]init];
+            id command = OCMClassMock([RACCommand class]);
+            viewModel.unCollectCommand = command;
+            
+            detail.viewModel = viewModel;
+            [detail soucangBtnDidClicked];
+            
+            it(@"Uncollected should Raised ", ^{
+                OCMVerify([command execute:[OCMArg any]]);
+            });
+        });
+        
+        
+        context(@"Test NavgationItem ", ^{
+            UIView* title = detail.titleSegment;
+            it(@"should Not Nil", ^{
+                [[title shouldNot]beNil];
+            });
+            
+            it(@"should Be UISegmentControl", ^{
+                [[title should]beKindOfClass:[UISegmentedControl class]];
+            });
+            UISegmentedControl* segTitle = (UISegmentedControl*)title;
+            it(@"should have Three Segment ", ^{
+                [[theValue(segTitle.numberOfSegments) should]equal:@(3)];
+            });
+        });
+        
+    })
+                       
+DetailNewViewController+Spec.h
+                       
+    #import "DetailNewViewController.h"
+                       
+	@interface DetailNewViewController (Spec)
+	   
+	@property(nonatomic,assign)NSInteger  isIntersting;
+	   
+	@property(nonatomic , strong) NSDictionary* contentData;
+	   
+	@property(nonatomic , strong) UISegmentedControl* titleSegment;
+	   
+	-(void)showWithDict:(NSDictionary*)dict;
+	   
+	@end
+	               
 // UIView 的分类
-
-#import "UIView+Spec.h"
-#import "MJRefresh.h"
-@class MJRefreshGifHeader;
-
-@implementation UIView (Spec)
-
-
-+(void)getRefeshHeader:(UIView*)rootView resultView:(UIView**)result{
-for(UIView * view in rootView.subviews){
-if ([view isKindOfClass:[MJRefreshGifHeader class]]) {
-*result = view;
-}else {
-[self getRefeshHeader:view resultView:result];
-}
-}
-}
-
-+(void)getViewByTitle:(NSString*)title rootView:(UIView*)rootView resultView:(UIView**)result{
-
-for(UIView * view in rootView.subviews){
-if ([view isKindOfClass:[UIButton class]]&&[[(UIButton*)view titleLabel].text isEqualToString:title]) {
-*result = view;
-}else {
-[self getViewByTitle:title rootView:view resultView:result];
-}
-}
-}
-
-@end
+                   
+    #import "UIView+Spec.h"
+    #import "MJRefresh.h"
+	@class MJRefreshGifHeader;
+	   
+	@implementation UIView (Spec)
+	   
+	+(void)getRefeshHeader:(UIView*)rootView resultView:(UIView**)result{
+	   for(UIView * view in rootView.subviews){
+	       if ([view isKindOfClass:[MJRefreshGifHeader class]]) {
+	           *result = view;
+	       }else {
+	           [self getRefeshHeader:view resultView:result];
+	       }
+	   }
+	}
+	   
+	+(void)getViewByTitle:(NSString*)title rootView:(UIView*)rootView resultView:(UIView**)result{
+       
+       for(UIView * view in rootView.subviews){
+           if ([view isKindOfClass:[UIButton class]]&&[[(UIButton*)view titleLabel].text isEqualToString:title]) {
+               *result = view;
+           }else {
+               [self getViewByTitle:title rootView:view resultView:result];
+           }
+       }
+	}
+	@end
+   
 
 [BDD实例](https://objccn.io/issue-15-1/)
 
