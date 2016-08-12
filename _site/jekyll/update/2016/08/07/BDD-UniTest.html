@@ -215,6 +215,8 @@ SPEC_END
 
 <p><a href="https://www.processon.com/diagraming/57ac4f86e4b066d99bdf5612">家园宝结构分析图</a></p>
 
+<p><img src="/assets/UniTest.png" alt="pic" /></p>
+
 <p>首先，我们来看一下iOS的UIViewController。对代码分析时，发现大量的的逻辑都被写在 .m 文件里，我们知道，UIViewController 在 .h 里面暴露的方法很少，可是 .m 大量的逻辑单元测试又不能不做，这就相当于要对代码中的private 方法进行测试。
 进一步分析发现，如果在ViewController 中 添加一个ViewModel层，将UIViewController 里的业务逻辑放入中间层，该层可以负责网络的请求，数据的处理等。一方面会使ViewController 更加简洁和实现单一原则，另一方面保证了逻辑的可能性，该中间层会对ViewController 暴露一些接口。在MVC的设计模式中，ViewController 承受了太多的任务导致测试的难度增加，将ViewController 拆分（MVVM）就会更加有利于单元测试。</p>
 
