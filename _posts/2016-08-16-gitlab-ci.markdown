@@ -2,7 +2,7 @@
 layout: post
 title:  "iOS 持续集成之 Gitlab-Ci"
 date:   2016-08-16 17:50:00 +0800
-categories: jekyll update
+categories: blogs update
 ---
 
 # iOS 持续集成之 Gitlab-Ci

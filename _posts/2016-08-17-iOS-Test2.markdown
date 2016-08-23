@@ -2,7 +2,7 @@
 layout: post
 title:  "iOS 测试(二)"
 date:   2016-08-17 09:50:00 +0800
-categories: jekyll update
+categories: blogs update
 ---
 
 # iOS 测试

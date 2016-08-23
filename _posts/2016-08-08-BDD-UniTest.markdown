@@ -2,7 +2,7 @@
 layout: post
 title:  "iOS 单元测试详解"
 date:   2016-08-07 17:50:00 +0800
-categories: jekyll update
+categories: blogs update
 ---
 
 

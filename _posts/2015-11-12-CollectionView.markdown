@@ -2,7 +2,7 @@
 layout: post
 title:  "使用 UICollection 实现瀑布流"
 date:   2015-11-12 17:50:00 +0800
-categories: jekyll update
+categories: blogs update
 ---
 
 UICollectionView 瀑布流的简单实现
