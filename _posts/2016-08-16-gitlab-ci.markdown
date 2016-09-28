@@ -1,13 +1,15 @@
 ---
 layout: post
-title:  "iOS 持续集成之 Gitlab-Ci"
+title:  "iOS 持续集成之 Gitlab-Ci + FastLane"
 date:   2016-08-16 17:50:00 +0800
 categories: blogs update
 ---
 
-# iOS 持续集成之 Gitlab-Ci
+# iOS 持续集成之 Gitlab-Ci + FastLane
 
-## 配置Xcode
+## Gitlab-Ci
+
+### 配置Xcode
 
 Xcode唯一需要配置的就是要将你运行的scheme设置成Shared。
 
@@ -17,7 +19,7 @@ Xcode唯一需要配置的就是要将你运行的scheme设置成Shared。
 
 ![selectShare](https://raw.githubusercontent.com/tanhuiya/RemoteImages/master/Gitlab-Ci/selectShare.png)
 
-## 安装 配置 GitLab Runner
+### 安装 配置 GitLab Runner
 
 	下载runner到本地
 	sudo curl --output /usr/local/bin/gitlab-ci-multi-runner https://gitlab-ci-multi-runner-downloads.s3.amazonaws.com/latest/binaries/gitlab-ci-multi-runner-darwin-amd64 
@@ -76,7 +78,7 @@ Xcode唯一需要配置的就是要将你运行的scheme设置成Shared。
 	gitlab-ci-multi-runner install
 	gitlab-ci-multi-runner start
 
-# 编写 yml 配置文件
+### 编写 yml 配置文件
 
 	stages:
 	  - build
@@ -127,3 +129,90 @@ Xcode唯一需要配置的就是要将你运行的scheme设置成Shared。
 小结，在测试，打包过程中可能会出现许多奇怪的错误，可以自己google或者询问我。
 
 [demo 地址](https://gitlab.oneitfarm.com/tanhui/iOS_Ci_Test)
+
+## Fastlane
+
+### 上述是使用xctool 打包并上传fir ，测试人员可以去fir 的网站扫码下载。这里介绍另一种方式。这里安装什么的我就不赘述了，官方都有，就将个人是怎么使用的。
+
+整个过程还是遇到很多问题的，整个过程不断google，个人从ruby环境2.0 切换到2.3 ，最后在2.2.3 上才ok。
+
+Fastlane 简化了测试，打包，上传testFlight 功能，其实包含了上述 xctool 的所有功能。Fastlane 每个过程都用一个lane 标示。
+
+自动测试：
+
+	lane :test do
+    scan({
+      workspace:"ParentAndSchool.xcworkspace",
+      scheme:"parent",
+      device:"iPhone 6s",
+      clean: true
+    })
+	end
+
+看一下scan 中的参数，workspace 表示项目的命名空间，如果你用cocoapods 集成是有这个文件的，如果没有使用xcworkspace ,这里参数就改为 project，对应的就是 xxx.xcodeproj 文件。
+
+打包
+
+	lane :archive do
+	    increment_build_number(
+	        xcodeproj: "./jyb_ios_parent/parent/frameworks/runtime-src/proj.ios_mac/parent.xcodeproj"
+	    )
+	    gym(
+	        workspace: "ParentAndSchool.xcworkspace",
+	        scheme: "parent",
+	        output_directory:"build",
+	        output_name: "jyb.ipa"
+	    )
+	end
+	
+archive 这个lane 我做了两个action，分别是 increment_build_number 和 gym 。
+
+* increment_build_number 这个动作是增加build号，我们知道，上传appstore 时build号要增加，这个需要xcode中一些配置，可以看[这里](https://developer.apple.com/library/content/qa/qa1827/_index.html),如果你没配置好，fastlane 跑脚本的时候不会直接挂掉，只会有提示， 到时候上传时就会失败。
+* gym 这个action 用来打包，参数就不用多说了。
+
+上传testFlight
+
+	lane :testFlight do
+	#for firwall
+    ENV["DELIVER_ITMSTRANSPORTER_ADDITIONAL_UPLOAD_PARAMETERS"] = "-t DAV"
+    pilot(
+        ipa:"build/jyb.ipa",
+        username: "*******@corp-ci.com",
+        skip_waiting_for_build_processing: true
+    )
+  	end
+  
+ pilot 是可以将包自动发布到itunes testFlight 后台的，一开始怎么也传不上去，好像是网络之类的问题，后来才发现需要加上下面这句话。(官方文档还是要好好读的)
+ 	
+ 	ENV["DELIVER_ITMSTRANSPORTER_ADDITIONAL_UPLOAD_PARAMETERS"] = "-t DAV"
+ 
+ 具体某个action 的参数及使用，可以通过命令 fastlane action *** ,例如(fastlane action gym)查看。
+ 
+ 另外在搭配 gitlab－ci 的过程中，发现每次archive 出来的包，到上传的时候总是说ipa文件找不到。因为gitlab 每个job 之后都会还原仓库的状态，就是archive 这个job 结束后，由于ipa 文佳不属于git仓库，被删了。解决办法如下，修改 .gitlab-ci.yml：
+ 
+	 archive_parent_project:
+	  stage : archive
+	  script :
+	         - fastlane archive
+	  only:
+	         - master
+	  cache:
+	     paths :
+	         - build/
+	         - build/jyb.ipa
+	     key: "build"
+	     untracked: true
+	upload_testFlight:
+	  cache:
+	     paths :
+	         - build/
+	         - build/jyb.ipa
+	     key: "build"
+	     untracked: true
+	  stage : testFlight
+	  script :
+	         - fastlane testFlight
+	  only:
+	         - master
+ 
+添加缓存文件，指定每个job结束后不删除build 布目录下的文件。
