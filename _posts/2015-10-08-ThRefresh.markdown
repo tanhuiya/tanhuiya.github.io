@@ -2,7 +2,7 @@
 layout: post
 title:  "Swift ThPullRefresh"
 date:   2015-10-08 17:50:00 +0800
-categories: blogs update
+categories: Swift iOS
 ---
 
 　　最近自己写了一个下拉加载最新，上拉加载更多的刷新控件。借鉴了其他优秀开源代码的实现效果比如MJRefresh和DGElasticPullRefresh。主要是为了学习别人的优秀思想。

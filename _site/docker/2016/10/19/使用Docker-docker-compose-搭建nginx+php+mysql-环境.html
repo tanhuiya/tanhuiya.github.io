@@ -1,0 +1,496 @@
+
+
+<!DOCTYPE html>
+<!--[if lt IE 7]> <html class="no-js lt-ie9 lt-ie8 lt-ie7 ie" lang="en"> <![endif]-->
+<!--[if IE 7]>    <html class="no-js lt-ie9 lt-ie8 ie" lang="en"> <![endif]-->
+<!--[if IE 8]>    <html class="no-js lt-ie9 ie" lang="en"> <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en"> <!--<![endif]-->
+<head>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<title>Docker docker-compose 配置Nginx+Php+Mysql开发环境</title>
+	<meta name="author" content="huiTan">
+	<link href='/assets/themes/the-program/css/style.css' rel="stylesheet" media="all">
+	<link href="http://feeds.feedburner.com/" rel="alternate" title="Docker docker-compose 配置Nginx+Php+Mysql开发环境" type="application/atom+xml">
+	<script src="http://cdnjs.cloudflare.com/ajax/libs/modernizr/2.0.6/modernizr.min.js"></script>
+</head>
+<body>
+
+<div id="page" class="hentry">
+	<header class="the-header">
+		<div class="unit-head">
+			<div class="unit-inner unit-head-inner">
+				<nav class="nav-global">
+					<ul class = "custom_ul">
+						<li class="logo"><a href="/">T_T</a></li>
+						<li ><image class = "icon" src = 'http://cdnstatic.visualizeus.com/thumbs/a4/11/builttype,3dtype,life,dope,fucksake,light-a41125efbc8ad28d0dd2fffc1749e033_h.jpg?ts=93246' /></li>
+						<li class="archive"><a href="/archive.html">archive</a></li>
+						<!-- <li class="page"><a href="/pages.html">pages</a></li> -->
+						<li class="category"><a href="/categories.html">categories</a></li>
+						<li class="tag"><a href="/tags.html">tags</a></li>
+						<li class="forkme"><div><iframe src="http://markdotto.github.com/github-buttons/github-btn.html?user=plusjade&repo=jekyll-bootstrap&type=fork&count=true"
+									allowtransparency="true" frameborder="0" scrolling="0" width="95px" height="20px"></iframe></div></li>
+					</ul>
+				</nav>
+			</div><!-- unit-inner -->
+		</div><!-- unit-head -->
+	</header>
+	<div class="body" role="main">
+		
+		<div class="unit-body">
+			<div class = "unit_header">
+				<image class = "header" src = "http://cdnstatic.visualizeus.com/thumbs/b6/c7/cats,adorable,black,boots,cute,kissyou-b6c7185e02196d5b4c8a48fa17ec8ef0_h.jpg?ts=93246"/>
+			</div>
+			<div class="unit-inner unit-body-inner">
+				<div class="entry-content">
+					
+
+<article class="unit-article layout-post">
+	<div class="unit-inner unit-article-inner">
+		<div class="content">
+			<header>
+				<div class="unit-head">
+					<div class="unit-inner unit-head-inner">
+						<h1 class="h2 entry-title">Docker docker-compose 配置Nginx+Php+Mysql开发环境</h1>
+					</div><!-- unit-inner -->
+				</div><!-- unit-head -->
+			</header>
+
+			<div class="bd">
+				<div class="entry-content">
+					<p>Docker docker-compose 配置Nginx+Php+Mysql开发环境</p>
+
+<p>安装Docker
+本机在CentOs7 下安装Docker，其他平台也一样 
+首先查看当前内核版本是否高于 3.10</p>
+
+<pre><code>$ uname -r
+3.10.0-327.el7.x86_64
+//安装docker	
+yum -y install docker
+//启动docker
+service docker start
+//查看版本信息
+docker info
+</code></pre>
+
+<p>安装hello-world 镜像</p>
+
+<pre><code>docker run hello-world
+</code></pre>
+
+<p>运行时的输出可以看到docker 是从本地镜像开始找，如果没有该镜像则去Docker Hub 去下载并运行。</p>
+
+<p>MySQL</p>
+
+<p>获取MySQL 我直接用的官方的镜像，输入以下命令</p>
+
+<pre><code>docker pull mysql:5.6
+</code></pre>
+
+<p>运行MySQL</p>
+
+<pre><code>docker run -p 3306:3306 --name test_mysql -v $PWD/mysql/data:/var/lib/mysql -e MYSQL_ROOT_PASSWORD=123456 -d --privileged=true mysql:5.6
+</code></pre>
+
+<p>命令说明：</p>
+
+<pre><code>-p 3306:3306：将容器的3306端口映射到主机的3306端口
+-v PWD/mysql/data:/var/lib/mysql：将主机当前目录下的mysql/data文件夹挂载到容器的/var/lib/mysql 下，在mysql容器中产生的数据就会保存在本机mysql/data目录下
+-e MYSQL_ROOT_PASSWORD=123456：初始化root用户的密码
+-d 后台运行容器
+--name 给容器指定别名
+--privileged=true centos7 可能会碰到权限问题，需要加参数
+</code></pre>
+
+<p>执行以下命令进入mysql 运行环境</p>
+
+<pre><code>docker exec -it test_mysql bash
+
+这样就进入mysql容器了，可以查看mysql 命令
+mysql －u root -p 
+输入密码就可以操作数据库
+mysql&gt; show databases;
++--------------------+
+| Database           |
++--------------------+
+| information_schema |
+| mysql              |
+| performance_schema |
++--------------------+
+4 rows in set (0.07 sec)
+mysql&gt; create database if not exists test_db;
+Query OK, 1 row affected, 1 warning (0.00 sec)
+
+mysql&gt; use test_db
+Reading table information for completion of table and column names
+You can turn off this feature to get a quicker startup with -A
+
+Database changed
+mysql&gt; create table people (name varchar(10), age int);
+Query OK, 0 rows affected (0.13 sec)
+
+mysql&gt; insert into people values('liming',10);
+Query OK, 1 row affected (0.03 sec)
+</code></pre>
+
+<p>PHP
+同样使用官方的php镜像，不过需要支持mysql扩展。所以我们这次用Dockerfile 来构建一个镜像，以下是Dockerfile</p>
+
+<pre><code> FROM  php:5.6-fpm
+ RUN apt-get update &amp;&amp; apt-get install -y \
+ libfreetype6-dev \
+ libjpeg62-turbo-dev \
+ libpng12-dev \
+ vim \
+ &amp;&amp; docker-php-ext-install pdo_mysql \
+ &amp;&amp; docker-php-ext-configure gd --with-freetype-dir=/usr/include/ --with-jpeg-dir=/usr/include/ \
+ &amp;&amp; docker-php-ext-install gd \
+</code></pre>
+
+<p>我们在原本的php5.6上安装了一些工具以及扩展。</p>
+
+<p>build 我们新建的镜像</p>
+
+<pre><code>docker build -t="php-fpm5.6/v2" .
+</code></pre>
+
+<p>然后用这个镜像跑一个php环境的容器</p>
+
+<pre><code>docker run -d -p 9000:9000 -v /home/tanhui/composeTest/code/:/var/www/html/ --name php-with-mysql --link test_mysql:mysql  --volumes-from test_mysql --privileged=true php-fpm5.6/v2
+</code></pre>
+
+<p>参数解析</p>
+
+<pre><code>－v 将本地磁盘上的php代码挂载到docker 环境中，对应docker的目录是 /var/www/html/ 
+--name 新建的容器名称 php-with-mysql
+--link 链接的容器，链接的容器名称：在该容器中的别名，运行这个容器是，docker中会自动添加一个host识别被链接的容器ip
+--privileged=true 权限问题
+</code></pre>
+
+<p>进入容器</p>
+
+<pre><code>docker exec -it php-with-mysql bash
+cd /var/www/html &amp;&amp; ls
+</code></pre>
+
+<p>这里就会看到你本地磁盘下所挂载的文件,在该目录下可以添加一个 mysql.php 文件，如下</p>
+
+<pre><code>try {
+    $dbh = new PDO('mysql:host=mysql;dbname=test_db', 'root','12
+3456');
+    foreach($dbh-&gt;query('SELECT * from people') as $row) {
+        print_r($row);
+    }
+    $dbh = null;
+} catch (PDOException $e) {
+    print "Error!: " . $e-&gt;getMessage() . "&lt;br/&gt;";
+    die();
+}
+</code></pre>
+
+<p>退出编辑</p>
+
+<pre><code>root@f5c9b982690a:/var/www/html# php mysql.phpphp mysql.php
+Array
+(
+    [name] =&gt; liming
+    [0] =&gt; liming
+    [age] =&gt; 10
+    [1] =&gt; 10
+)
+</code></pre>
+
+<p>输出结果如上，这样我们php链接mysql就成功了。</p>
+
+<p>安装Nginx镜像
+本地编辑nginx配置文件 default.conf 绝对路径为（/home/tanhui/composeTest/nginx/conf/default.conf）
+文件内容如下</p>
+
+<pre><code>server {
+    listen       80;
+    server_name  localhost;
+
+    location / {
+        root   /var/www/html;
+        index  index.html index.htm index.php; # 增加index.php
+    }
+
+    #error_page  404              /404.html;
+
+    # redirect server error pages to the static page /50x.html
+    #
+    error_page   500 502 503 504  /50x.html;
+    location = /50x.html {
+        root   /var/www/html;
+    }
+    location ~ \.php$ {
+        root           /var/www/html; # 代码目录
+        fastcgi_pass   phpfpm:9000;    # 修改为phpfpm容器
+        fastcgi_index  index.php;
+        fastcgi_param  SCRIPT_FILENAME  $document_root$fastcgi_script_name; # 修改为$document_root
+        include        fastcgi_params;
+    }
+} 运行容器
+
+docker run -d --link php-with-mysql:phpfpm --volumes-from php-with-mysql -p 80:80 -v /home/tanhui/composeTest/nginx/conf/default.conf:/etc/nginx/conf.d/default.conf --name nginx-php --privileged=true  nginx
+</code></pre>
+
+<p>参数解析</p>
+
+<pre><code>--link php-with-mysql:phpfpm 将php容器链接到nginx容器里来，phpfpm是nginx容器里的别名。
+--volumes-from php-with-mysql 将php-with-mysql 容器挂载的文件也同样挂载到nginx容器中
+-v /home/tanhui/composeTest/nginx/conf/default.conf:/etc/nginx/conf.d/default.conf  将nginx 的配置文件替换，挂载本地编写的配置文件
+
+docker exec -it nginx-php bash
+root@32de01dbee49:/# cd /var/www/html/&amp;&amp;ls
+index.php  mysql.php  testmysql.php  webview
+</code></pre>
+
+<p>我们可以看到挂载在php－mysql容器里的文件夹同样也被挂载在nginx容器里，这时在本机方案127.0.0.1/mysql.php,数据库中的数据就在浏览器上输出了。
+这样 nginx＋php＋mysql 的连接就基本完成了。</p>
+
+<p>接下来介绍另一种方法</p>
+
+<p>##docker-compose</p>
+
+<p>上面介绍了用纯docker 命令启动容器，链接容器，但是每次启动容器时都要填写一堆参数，难免容易出错，出错了之后还要删除该容器才能重新跑。接下来就介绍一下 docker-compose.</p>
+
+<p>一个使用Docker容器的应用，通常由多个容器组成。使用Docker Compose，不再需要使用shell脚本来启动容器。在配置文件中，所有的容器通过services来定义，然后使用docker-compose脚本来启动，停止和重启应用，和应用中的服务以及所有依赖服务的容器。</p>
+
+<p>首先安装docker-compose</p>
+
+<pre><code>// 安装pip
+sudo yum install epel-release
+sudo yum install -y python-pip
+//使用pip 安装
+sudo pip install -U docker-compose
+</code></pre>
+
+<p>Compose的默认配置文件是docker-compose.yml。让我们看看下面这个文件：</p>
+
+<pre><code>nginx:
+  build: ./nginx
+  ports:
+    - "80:80"
+  links:
+    - "phpfpm"
+  volumes:
+    - /home/tanhui/composeTest/code/:/var/www/html/
+    - /home/tanhui/composeTest/nginx/conf/default.conf:/etc/nginx/conf.d/default.conf
+phpfpm:
+  build: ./phpfpm
+  ports:
+    - "9000:9000"
+  volumes:
+    - ./code/:/var/www/html/
+  links:
+    - "mysql"
+mysql:
+  build: ./mysql
+  ports:
+    - "3306:3306"
+  volumes:
+    - /home/tanhui/composeTest/mysql/data/:/var/lib/mysql/
+  environment:
+    MYSQL_ROOT_PASSWORD : 123456
+</code></pre>
+
+<p>以上的配置文件路径有绝对路径，有相对路径，build 参数代表该路径下的Dockerfile
+先看一下大概的目录结构</p>
+
+<pre><code>$ tree composeTest
+composeTest
+├── code
+│   ├── index.php
+│   ├── mysql.php
+│   └── testmysql.php
+│       
+├── docker-compose.yml
+├── index.php
+├── mysql
+│   ├── data
+│   │   ├── auto.cnf
+│   │   ├── ibdata1
+│   │   ├── ib_logfile0
+│   │   ├── ib_logfile1
+│   │   ├── mysql [error opening dir]
+│   │   ├── performance_schema [error opening dir]
+│   │   └── test_db [error opening dir]
+│   └── Dockerfile
+├── nginx
+│   ├── conf
+│   │   └── default.conf
+│   └── Dockerfile
+└── phpfpm
+    └── Dockerfile
+
+10 directories, 23 files
+
+// Dockerfile 如下
+$ cat composeTest/mysql/Dockerfile
+FROM mysql:5.6
+
+# tanhui @ localhost in ~ [20:57:51]
+$ cat composeTest/phpfpm/Dockerfile
+ FROM  php:5.6-fpm
+ RUN apt-get update &amp;&amp; apt-get install -y \
+ libfreetype6-dev \
+ libjpeg62-turbo-dev \
+ libpng12-dev \
+ vim \
+ &amp;&amp; docker-php-ext-install pdo_mysql \
+ &amp;&amp; docker-php-ext-configure gd --with-freetype-dir=/usr/include/ --with-jpeg-dir=/usr/include/ \
+ &amp;&amp; docker-php-ext-install gd \
+ 
+# tanhui @ localhost in ~ [20:58:19]
+$ cat composeTest/nginx/Dockerfile
+FROM nginx:latest
+RUN apt-get update &amp;&amp; apt-get install -y vim
+</code></pre>
+
+<p>现在运行这三个容器只要使用命令  docker-compose up -d</p>
+
+					<div class="meta">
+						<p class="date-publish">
+							Published: 
+							<date class="date-pub" title="2016-10-19T16:50:00+08:00" datetime="2016-10-19T16:50:00+08:00" pubdate>
+							<span class="month"><abbr>October</abbr></span>
+							<span class="day">19</span>
+							<span class="year">2016</span>
+							</date>
+						</p>
+						<ul class="list-category list-linear">
+							<li class="list-head">category: </li>
+							
+							
+
+
+  
+     
+    	<li><a href="/categories.html#Docker-ref">
+    		Docker <span>1</span>
+    	</a></li>
+    
+  
+
+
+						</ul>
+						<ul class="list-tag list-linear">
+							<li class="list-head">tags: </li>
+							
+							
+
+
+  
+    
+  
+
+
+
+						</ul>
+					</div><!-- meta -->
+				</div><!-- entry-content -->
+				<div class="misc-content">
+					<div class="social">
+						<ul class="list-linear">
+							<li><div class="twitter-tweet"><a href="https://twitter.com/share" class="twitter-share-button" data-count="horizontal" data-via="tanhui" data-lang="en">Tweet</a></div></li>
+							<li><div class="twitter-follow"><a href="https://twitter.com/tanhui" class="twitter-follow-button" data-show-count="false" data-lang="en"></a></div></li>
+						</ul>
+					</div>
+					<div class="comment">
+					
+
+
+  <div id="disqus_thread"></div>
+<script type="text/javascript">
+    
+    var disqus_developer = 1;
+    var disqus_shortname = 'jekyllbootstrap'; // required: replace example with your forum shortname
+    
+    /* * * DON'T EDIT BELOW THIS LINE * * */
+    (function() {
+        var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+        dsq.src = 'http://' + disqus_shortname + '.disqus.com/embed.js';
+        (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+    })();
+</script>
+<noscript>Please enable JavaScript to view the <a href="http://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+<a href="http://disqus.com" class="dsq-brlink">blog comments powered by <span class="logo-disqus">Disqus</span></a>
+
+
+
+
+					</div>
+				</div><!-- misc-content -->
+			</div><!-- bd -->
+			<footer class="unit-foot">
+				<div class="unit-inner unit-foot-inner">
+					<nav class="pagination">
+						<ul>
+							
+							<li class="prev"><a class="internal" rel="prev"  href="/ios/2016/08/17/iOS-Test2" title="View iOS 测试(二)">&laquo; iOS 测试(二)</a></li>
+							
+							
+							
+						</ul>
+					</nav>
+					<p class="gotop">
+						<a href="#page">Back to Top</a>
+					</p>
+				</div>
+			</footer>
+
+		</div><!-- content -->
+	</div><!-- unit-inner -->
+</article>
+
+
+				</div>
+			</div><!-- unit-inner -->
+		</div><!-- unit-body -->
+	</div><!-- body -->
+	<footer class="the-footer">
+		<div class="unit-foot">
+			<div class="unit-inner unit-foot-inner">
+				<div class="misc vcard">
+					<h4>about</h4>
+					<ul>
+						<li class="contact"><address><span class="author fn n">huiTan</span> - <span class="fn email">hui_tan_123@163.com</span></address></li>
+						<li class="github"><a href="http://github.com/tanhuiya/" rel="me">github.com/tanhuiya</a></li>
+						<li class="twitter"><a href="http://twitter.com/tanhui/" rel="me">twitter.com/tanhui</a></li>
+						<li class="rss"><a href="http://feeds.feedburner.com/">Subscribe to RSS Feed</a></li>
+					</ul>
+				</div><!-- misc -->
+				<!-- <p class="licence">
+					Theme: <a href="http://layouts-the.me">the_minimum</a> based on <a href="http://jekyllbootstrap.com/">Jekyll-bootstrap</a>.<br>
+					Powered by <a href="https://github.com/mojombo/jekyll">Jekyll</a>.
+				</p> -->
+			</div><!-- unit-foot-inner -->
+		</div><!-- unit-foot -->
+	</footer>
+</div><!-- page -->
+<script>
+	(function(d, s) {
+		var js, fjs = d.getElementsByTagName(s)[0], load = function(url, id) {
+		if (d.getElementById(id)) {return;}
+		js = d.createElement(s); js.src = url; js.id = id;
+		fjs.parentNode.insertBefore(js, fjs);
+		};
+	load('//platform.twitter.com/widgets.js', 'tweetjs');
+	// load('https://apis.google.com/js/plusone.js', 'gplus1js'); // Checkout http://j.mp/ApDgMr for usage html for this is <div class="g-plusone" data-size="medium"></div>
+	// load('//connect.facebook.net/en_US/all.js#xfbml=1', 'fbjssdk'); // Checkout http://j.mp/wZw2xR for using open graph protorol html for this is <div class="fb-like" data-href="/docker/2016/10/19/%E4%BD%BF%E7%94%A8Docker-docker-compose-%E6%90%AD%E5%BB%BAnginx+php+mysql-%E7%8E%AF%E5%A2%83" data-send="false" data-layout="button_count" data-width="450" data-show-faces="false" data-font="verdana"></div>
+	}(document, 'script'));
+</script>
+<script>
+/*! A fix for the iOS orientationchange zoom bug.Script by @scottjehl, rebound by @wilto. MIT License.*/
+(function(j){var i=j.document;if(!i.querySelectorAll){return}var l=i.querySelectorAll("meta[name=viewport]")[0],a=l&&l.getAttribute("content"),h=a+", maximum-scale=1.0",d=a+", maximum-scale=10.0",g=true,c=j.orientation,k=0;if(!l){return}function f(){l.setAttribute("content",d);g=true}function b(){l.setAttribute("content",h);g=false}function e(m){c=Math.abs(j.orientation);k=Math.abs(m.gamma);if(k>8&&c===0){if(g){b()}}else{if(!g){f()}}}j.addEventListener("orientationchange",f,false);j.addEventListener("deviceorientation",e,false)})(this);
+</script>
+  
+  
+
+
+
+</body>
+</html>
+

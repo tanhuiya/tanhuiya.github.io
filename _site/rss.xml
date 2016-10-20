@@ -1,0 +1,1655 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+<channel>
+        <title>T_T</title>
+        <description>T_T - huiTan</description>
+        <link>http://tanhuiya.github.io</link>
+        <atom:link href="http://tanhuiya.github.io/rss.xml" rel="self" type="application/rss+xml" />
+        <lastBuildDate>Thu, 20 Oct 2016 11:46:35 +0800</lastBuildDate>
+        <pubDate>Thu, 20 Oct 2016 11:46:35 +0800</pubDate>
+        <ttl>60</ttl>
+
+
+        <item>
+                <title>Docker docker-compose 配置Nginx+Php+Mysql开发环境</title>
+                <description>&lt;p&gt;Docker docker-compose 配置Nginx+Php+Mysql开发环境&lt;/p&gt;
+
+&lt;p&gt;安装Docker
+本机在CentOs7 下安装Docker，其他平台也一样 
+首先查看当前内核版本是否高于 3.10&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;$ uname -r
+3.10.0-327.el7.x86_64
+//安装docker	
+yum -y install docker
+//启动docker
+service docker start
+//查看版本信息
+docker info
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;安装hello-world 镜像&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;docker run hello-world
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;运行时的输出可以看到docker 是从本地镜像开始找，如果没有该镜像则去Docker Hub 去下载并运行。&lt;/p&gt;
+
+&lt;p&gt;MySQL&lt;/p&gt;
+
+&lt;p&gt;获取MySQL 我直接用的官方的镜像，输入以下命令&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;docker pull mysql:5.6
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;运行MySQL&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;docker run -p 3306:3306 --name test_mysql -v $PWD/mysql/data:/var/lib/mysql -e MYSQL_ROOT_PASSWORD=123456 -d --privileged=true mysql:5.6
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;命令说明：&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;-p 3306:3306：将容器的3306端口映射到主机的3306端口
+-v PWD/mysql/data:/var/lib/mysql：将主机当前目录下的mysql/data文件夹挂载到容器的/var/lib/mysql 下，在mysql容器中产生的数据就会保存在本机mysql/data目录下
+-e MYSQL_ROOT_PASSWORD=123456：初始化root用户的密码
+-d 后台运行容器
+--name 给容器指定别名
+--privileged=true centos7 可能会碰到权限问题，需要加参数
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;执行以下命令进入mysql 运行环境&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;docker exec -it test_mysql bash
+
+这样就进入mysql容器了，可以查看mysql 命令
+mysql －u root -p 
+输入密码就可以操作数据库
+mysql&amp;gt; show databases;
++--------------------+
+| Database           |
++--------------------+
+| information_schema |
+| mysql              |
+| performance_schema |
++--------------------+
+4 rows in set (0.07 sec)
+mysql&amp;gt; create database if not exists test_db;
+Query OK, 1 row affected, 1 warning (0.00 sec)
+
+mysql&amp;gt; use test_db
+Reading table information for completion of table and column names
+You can turn off this feature to get a quicker startup with -A
+
+Database changed
+mysql&amp;gt; create table people (name varchar(10), age int);
+Query OK, 0 rows affected (0.13 sec)
+
+mysql&amp;gt; insert into people values('liming',10);
+Query OK, 1 row affected (0.03 sec)
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;PHP
+同样使用官方的php镜像，不过需要支持mysql扩展。所以我们这次用Dockerfile 来构建一个镜像，以下是Dockerfile&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt; FROM  php:5.6-fpm
+ RUN apt-get update &amp;amp;&amp;amp; apt-get install -y \
+ libfreetype6-dev \
+ libjpeg62-turbo-dev \
+ libpng12-dev \
+ vim \
+ &amp;amp;&amp;amp; docker-php-ext-install pdo_mysql \
+ &amp;amp;&amp;amp; docker-php-ext-configure gd --with-freetype-dir=/usr/include/ --with-jpeg-dir=/usr/include/ \
+ &amp;amp;&amp;amp; docker-php-ext-install gd \
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;我们在原本的php5.6上安装了一些工具以及扩展。&lt;/p&gt;
+
+&lt;p&gt;build 我们新建的镜像&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;docker build -t=&quot;php-fpm5.6/v2&quot; .
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;然后用这个镜像跑一个php环境的容器&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;docker run -d -p 9000:9000 -v /home/tanhui/composeTest/code/:/var/www/html/ --name php-with-mysql --link test_mysql:mysql  --volumes-from test_mysql --privileged=true php-fpm5.6/v2
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;参数解析&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;－v 将本地磁盘上的php代码挂载到docker 环境中，对应docker的目录是 /var/www/html/ 
+--name 新建的容器名称 php-with-mysql
+--link 链接的容器，链接的容器名称：在该容器中的别名，运行这个容器是，docker中会自动添加一个host识别被链接的容器ip
+--privileged=true 权限问题
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;进入容器&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;docker exec -it php-with-mysql bash
+cd /var/www/html &amp;amp;&amp;amp; ls
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;这里就会看到你本地磁盘下所挂载的文件,在该目录下可以添加一个 mysql.php 文件，如下&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;try {
+    $dbh = new PDO('mysql:host=mysql;dbname=test_db', 'root','12
+3456');
+    foreach($dbh-&amp;gt;query('SELECT * from people') as $row) {
+        print_r($row);
+    }
+    $dbh = null;
+} catch (PDOException $e) {
+    print &quot;Error!: &quot; . $e-&amp;gt;getMessage() . &quot;&amp;lt;br/&amp;gt;&quot;;
+    die();
+}
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;退出编辑&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;root@f5c9b982690a:/var/www/html# php mysql.phpphp mysql.php
+Array
+(
+    [name] =&amp;gt; liming
+    [0] =&amp;gt; liming
+    [age] =&amp;gt; 10
+    [1] =&amp;gt; 10
+)
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;输出结果如上，这样我们php链接mysql就成功了。&lt;/p&gt;
+
+&lt;p&gt;安装Nginx镜像
+本地编辑nginx配置文件 default.conf 绝对路径为（/home/tanhui/composeTest/nginx/conf/default.conf）
+文件内容如下&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;server {
+    listen       80;
+    server_name  localhost;
+
+    location / {
+        root   /var/www/html;
+        index  index.html index.htm index.php; # 增加index.php
+    }
+
+    #error_page  404              /404.html;
+
+    # redirect server error pages to the static page /50x.html
+    #
+    error_page   500 502 503 504  /50x.html;
+    location = /50x.html {
+        root   /var/www/html;
+    }
+    location ~ \.php$ {
+        root           /var/www/html; # 代码目录
+        fastcgi_pass   phpfpm:9000;    # 修改为phpfpm容器
+        fastcgi_index  index.php;
+        fastcgi_param  SCRIPT_FILENAME  $document_root$fastcgi_script_name; # 修改为$document_root
+        include        fastcgi_params;
+    }
+} 运行容器
+
+docker run -d --link php-with-mysql:phpfpm --volumes-from php-with-mysql -p 80:80 -v /home/tanhui/composeTest/nginx/conf/default.conf:/etc/nginx/conf.d/default.conf --name nginx-php --privileged=true  nginx
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;参数解析&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;--link php-with-mysql:phpfpm 将php容器链接到nginx容器里来，phpfpm是nginx容器里的别名。
+--volumes-from php-with-mysql 将php-with-mysql 容器挂载的文件也同样挂载到nginx容器中
+-v /home/tanhui/composeTest/nginx/conf/default.conf:/etc/nginx/conf.d/default.conf  将nginx 的配置文件替换，挂载本地编写的配置文件
+
+docker exec -it nginx-php bash
+root@32de01dbee49:/# cd /var/www/html/&amp;amp;&amp;amp;ls
+index.php  mysql.php  testmysql.php  webview
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;我们可以看到挂载在php－mysql容器里的文件夹同样也被挂载在nginx容器里，这时在本机方案127.0.0.1/mysql.php,数据库中的数据就在浏览器上输出了。
+这样 nginx＋php＋mysql 的连接就基本完成了。&lt;/p&gt;
+
+&lt;p&gt;接下来介绍另一种方法&lt;/p&gt;
+
+&lt;p&gt;##docker-compose&lt;/p&gt;
+
+&lt;p&gt;上面介绍了用纯docker 命令启动容器，链接容器，但是每次启动容器时都要填写一堆参数，难免容易出错，出错了之后还要删除该容器才能重新跑。接下来就介绍一下 docker-compose.&lt;/p&gt;
+
+&lt;p&gt;一个使用Docker容器的应用，通常由多个容器组成。使用Docker Compose，不再需要使用shell脚本来启动容器。在配置文件中，所有的容器通过services来定义，然后使用docker-compose脚本来启动，停止和重启应用，和应用中的服务以及所有依赖服务的容器。&lt;/p&gt;
+
+&lt;p&gt;首先安装docker-compose&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;// 安装pip
+sudo yum install epel-release
+sudo yum install -y python-pip
+//使用pip 安装
+sudo pip install -U docker-compose
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;Compose的默认配置文件是docker-compose.yml。让我们看看下面这个文件：&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;nginx:
+  build: ./nginx
+  ports:
+    - &quot;80:80&quot;
+  links:
+    - &quot;phpfpm&quot;
+  volumes:
+    - /home/tanhui/composeTest/code/:/var/www/html/
+    - /home/tanhui/composeTest/nginx/conf/default.conf:/etc/nginx/conf.d/default.conf
+phpfpm:
+  build: ./phpfpm
+  ports:
+    - &quot;9000:9000&quot;
+  volumes:
+    - ./code/:/var/www/html/
+  links:
+    - &quot;mysql&quot;
+mysql:
+  build: ./mysql
+  ports:
+    - &quot;3306:3306&quot;
+  volumes:
+    - /home/tanhui/composeTest/mysql/data/:/var/lib/mysql/
+  environment:
+    MYSQL_ROOT_PASSWORD : 123456
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;以上的配置文件路径有绝对路径，有相对路径，build 参数代表该路径下的Dockerfile
+先看一下大概的目录结构&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;$ tree composeTest
+composeTest
+├── code
+│   ├── index.php
+│   ├── mysql.php
+│   └── testmysql.php
+│       
+├── docker-compose.yml
+├── index.php
+├── mysql
+│   ├── data
+│   │   ├── auto.cnf
+│   │   ├── ibdata1
+│   │   ├── ib_logfile0
+│   │   ├── ib_logfile1
+│   │   ├── mysql [error opening dir]
+│   │   ├── performance_schema [error opening dir]
+│   │   └── test_db [error opening dir]
+│   └── Dockerfile
+├── nginx
+│   ├── conf
+│   │   └── default.conf
+│   └── Dockerfile
+└── phpfpm
+    └── Dockerfile
+
+10 directories, 23 files
+
+// Dockerfile 如下
+$ cat composeTest/mysql/Dockerfile
+FROM mysql:5.6
+
+# tanhui @ localhost in ~ [20:57:51]
+$ cat composeTest/phpfpm/Dockerfile
+ FROM  php:5.6-fpm
+ RUN apt-get update &amp;amp;&amp;amp; apt-get install -y \
+ libfreetype6-dev \
+ libjpeg62-turbo-dev \
+ libpng12-dev \
+ vim \
+ &amp;amp;&amp;amp; docker-php-ext-install pdo_mysql \
+ &amp;amp;&amp;amp; docker-php-ext-configure gd --with-freetype-dir=/usr/include/ --with-jpeg-dir=/usr/include/ \
+ &amp;amp;&amp;amp; docker-php-ext-install gd \
+ 
+# tanhui @ localhost in ~ [20:58:19]
+$ cat composeTest/nginx/Dockerfile
+FROM nginx:latest
+RUN apt-get update &amp;amp;&amp;amp; apt-get install -y vim
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;现在运行这三个容器只要使用命令  docker-compose up -d&lt;/p&gt;
+</description>
+                <link>http://tanhuiya.github.io/docker/2016/10/19/%E4%BD%BF%E7%94%A8Docker-docker-compose-%E6%90%AD%E5%BB%BAnginx+php+mysql-%E7%8E%AF%E5%A2%83</link>
+                <guid>http://tanhuiya.github.io/docker/2016/10/19/使用Docker docker-compose 搭建nginx+php+mysql 环境</guid>
+                <pubDate>Wed, 19 Oct 2016 16:50:00 +0800</pubDate>
+        </item>
+
+        <item>
+                <title>iOS 测试(二)</title>
+                <description>&lt;h1 id=&quot;ios-&quot;&gt;iOS 测试&lt;/h1&gt;
+
+&lt;h2 id=&quot;section&quot;&gt;测试类型&lt;/h2&gt;
+&lt;blockquote&gt;
+  &lt;h3 id=&quot;section-1&quot;&gt;单元测试&lt;/h3&gt;
+  &lt;blockquote&gt;
+    &lt;p&gt;单元测试是指对软件系统中的最小可测试单元进行检查，一般是指不可分割的模块和函数。&lt;/p&gt;
+  &lt;/blockquote&gt;
+&lt;/blockquote&gt;
+
+&lt;blockquote&gt;
+  &lt;h3 id=&quot;section-2&quot;&gt;集成测试&lt;/h3&gt;
+  &lt;blockquote&gt;
+    &lt;p&gt;集成测试是单元测试的逻辑扩展，最简单的形式就是把两个已经测试过的单元组成一个组件，并测试他们的接口。从这层意义上讲，组件是指多个单元测试的集成聚合。在iOS 开发领域中，集成测试被简单的分为 Api 接口测试，和功能集成测试。Api 接口测试是指，若一个iOS程序以网络请求的方式请求数据，测试时需要验证网络请求以及相应是否符合预期。iOS 功能集成测试其实就是功能测试。iOS 程序中，许多功能都是在UI上体现的，所以功能的测试主要就是 UI 的测试。&lt;/p&gt;
+  &lt;/blockquote&gt;
+&lt;/blockquote&gt;
+
+&lt;blockquote&gt;
+  &lt;h3 id=&quot;section-3&quot;&gt;系统测试&lt;/h3&gt;
+  &lt;blockquote&gt;
+    &lt;p&gt;系统测试类似黑盒测试，将已经确认的软件，计算机硬件以及网络等元素结合到一起，验证系统是否符合需求规格的定义，找出与需求规格不符合的地方。&lt;/p&gt;
+  &lt;/blockquote&gt;
+&lt;/blockquote&gt;
+
+&lt;h2 id=&quot;ios--1&quot;&gt;iOS 程序中需要测什么&lt;/h2&gt;
+&lt;p&gt;从分层的角度看，iOS应用也要分为前台展现和后台服务两个部分，每个组件都应该有单元测试和集成测试的步骤。&lt;/p&gt;
+
+&lt;blockquote&gt;
+  &lt;h3 id=&quot;mvc&quot;&gt;MVC&lt;/h3&gt;
+  &lt;blockquote&gt;
+    &lt;p&gt;在最基础的 MVC 模式中，每一次动作都是以 View 的 Action 方式传递给 Controller ，然后Controller 通知 Model 去响应，Model 层的业务逻辑有了结果之后，会以通知(Notification)的方式通知 Controller ，这时Controller 收到通知后会更新View 的显示状态。这样一个MVC 的响应循环就完成了。&lt;/p&gt;
+  &lt;/blockquote&gt;
+&lt;/blockquote&gt;
+
+&lt;p&gt;&lt;img src=&quot;https://github.com/tanhuiya/RemoteImages/blob/master/Tests/MVC.png?raw=true&quot; alt=&quot;MVC&quot; /&gt;&lt;/p&gt;
+
+&lt;blockquote&gt;
+  &lt;ul&gt;
+    &lt;li&gt;Model 层的业务是可以直接进行单元测试的，Model 的测试包括 Controller 到 Model 的测试，以及 Model 到Controller 的测试。&lt;/li&gt;
+    &lt;li&gt;Action的测试，从 View 层到 Controller 层，Action 表示用户对View 进行了操作，View 响应了操作并调用Controller 方法或者 View 自己处理了方法。Action 部分可以被更细致的分为三个部分&lt;/li&gt;
+  &lt;/ul&gt;
+&lt;/blockquote&gt;
+
+&lt;blockquote&gt;
+  &lt;blockquote&gt;
+    &lt;ul&gt;
+      &lt;li&gt;确认View 是否存在。&lt;/li&gt;
+      &lt;li&gt;确认View 是否正常响应，绑定了正确的事件或方法。&lt;/li&gt;
+      &lt;li&gt;确认View 发送消息的方式是否正确。&lt;/li&gt;
+    &lt;/ul&gt;
+  &lt;/blockquote&gt;
+&lt;/blockquote&gt;
+
+&lt;blockquote&gt;
+  &lt;ul&gt;
+    &lt;li&gt;Update的测试，当数据从 Model 层传递到 Controller 之后，需要更新 View ，这部分需要测试View 是否正常显示。&lt;/li&gt;
+  &lt;/ul&gt;
+
+&lt;/blockquote&gt;
+
+&lt;blockquote&gt;
+  &lt;h3 id=&quot;mvvm&quot;&gt;MVVM&lt;/h3&gt;
+  &lt;blockquote&gt;
+    &lt;p&gt;MVVM 是从 MVC 衍生出来的。测试的内容基本相同，将大部分的Controller 的逻辑迁移到ViewModel 中去了。&lt;/p&gt;
+  &lt;/blockquote&gt;
+&lt;/blockquote&gt;
+
+&lt;p&gt;&lt;img src=&quot;https://github.com/tanhuiya/RemoteImages/blob/master/Tests/MVVM.png?raw=true&quot; alt=&quot;MVVM&quot; /&gt;&lt;/p&gt;
+
+&lt;blockquote&gt;
+  &lt;ul&gt;
+    &lt;li&gt;Controller 自身的测试包括生命周期的一些逻辑，以及流程的跳转。&lt;/li&gt;
+  &lt;/ul&gt;
+&lt;/blockquote&gt;
+</description>
+                <link>http://tanhuiya.github.io/ios/2016/08/17/iOS-Test2</link>
+                <guid>http://tanhuiya.github.io/ios/2016/08/17/iOS-Test2</guid>
+                <pubDate>Wed, 17 Aug 2016 09:50:00 +0800</pubDate>
+        </item>
+
+        <item>
+                <title>iOS 持续集成之 Gitlab-Ci + FastLane</title>
+                <description>&lt;h1 id=&quot;ios--gitlab-ci--fastlane&quot;&gt;iOS 持续集成之 Gitlab-Ci + FastLane&lt;/h1&gt;
+
+&lt;h2 id=&quot;gitlab-ci&quot;&gt;Gitlab-Ci&lt;/h2&gt;
+
+&lt;h3 id=&quot;xcode&quot;&gt;配置Xcode&lt;/h3&gt;
+
+&lt;p&gt;Xcode唯一需要配置的就是要将你运行的scheme设置成Shared。&lt;/p&gt;
+
+&lt;ol&gt;
+  &lt;li&gt;打开Xcode项目&lt;/li&gt;
+  &lt;li&gt;选择Product &amp;gt; Scheme &amp;gt; Manage Schemes&lt;/li&gt;
+  &lt;li&gt;将对应的scheme勾选上Shared&lt;/li&gt;
+&lt;/ol&gt;
+
+&lt;p&gt;&lt;img src=&quot;https://raw.githubusercontent.com/tanhuiya/RemoteImages/master/Gitlab-Ci/selectShare.png&quot; alt=&quot;selectShare&quot; /&gt;&lt;/p&gt;
+
+&lt;h3 id=&quot;gitlab-runner&quot;&gt;安装 配置 GitLab Runner&lt;/h3&gt;
+
+&lt;pre&gt;&lt;code&gt;下载runner到本地
+sudo curl --output /usr/local/bin/gitlab-ci-multi-runner https://gitlab-ci-multi-runner-downloads.s3.amazonaws.com/latest/binaries/gitlab-ci-multi-runner-darwin-amd64 
+//修改目录权限
+sudo chmod +x /usr/local/bin/gitlab-ci-multi-runner  
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;这样就完成了Runner的安装，接下来要为工程注册一个Runner，本地注册Runner需要GitLab项目的CI地址和Token，打开到GitLab，进入对应项目选择 Setting－Runners ，
+点击Runners&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&quot;https://raw.githubusercontent.com/tanhuiya/RemoteImages/master/Gitlab-Ci/clickRunner.png&quot; alt=&quot;clickRunner&quot; /&gt;&lt;/p&gt;
+
+&lt;hr /&gt;
+&lt;p&gt;如下图所示，我们可以看到提示。&lt;/p&gt;
+
+&lt;hr /&gt;
+&lt;p&gt;&lt;img src=&quot;https://raw.githubusercontent.com/tanhuiya/RemoteImages/master/Gitlab-Ci/configRunner.png&quot; alt=&quot;result&quot; /&gt;&lt;/p&gt;
+
+&lt;p&gt;知道 URL 和 Token 之后就可以就可以注册Runner了&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;gitlab-ci-multi-runner register
+WARNING: Running in user-mode.                     
+WARNING: The user-mode requires you to manually start builds processing: 
+WARNING: $ gitlab-runner run                       
+WARNING: Use sudo for system-mode:                 
+WARNING: $ sudo gitlab-runner...  
+ 
+//输入之前的URL
+Please enter the gitlab-ci coordinator URL (e.g. https://gitlab.com/ci):
+https://xxxx.com/ci
+ 
+//输入token
+Please enter the gitlab-ci token for this runner:
+&amp;amp;lt;CI runner token from Project &amp;amp;gt; Settings &amp;amp;gt; Runner&amp;amp;gt;
+ 
+//描述，这个随意了，一般用默认的就好
+Please enter the gitlab-ci description for this runner:
+[Your-Mac\'s-Name.local]:
+ 
+//runner的tag，这个是用于执行脚本时指定runner用的，所以最好起一个比较容易区分的
+Please enter the gitlab-ci tags for this runner (comma separated):
+test_machine
+Registering runner... succeeded                     runner=724a60b5
+ 
+//runner的执行器，因为Xcode项目需要用xcodebuild来执行，所以选shell
+Please enter the executor: virtualbox, ssh, shell, parallels, docker, docker-ssh:
+shell
+ 
+Runner registered successfully. Feel free to start it, but if it's running 
+already the config should be automatically reloaded! 
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;这时候再刷新GitLab项目的 Runner 界面就会看到一个 Active Runner 了
+确认好了之后可以启动 Runner 了。&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;cd ~
+gitlab-ci-multi-runner install
+gitlab-ci-multi-runner start
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;h3 id=&quot;yml-&quot;&gt;编写 yml 配置文件&lt;/h3&gt;
+
+&lt;pre&gt;&lt;code&gt;stages:
+  - build
+  - archive
+
+build_project:
+  stage : build
+  script :
+        - xctool -workspace XXX.xcworkspace -scheme parent clean
+        - xctool -workspace XXX.xcworkspace -scheme parent -sdk iphonesimulator9.2 -destination name=&quot;iPhone 6&quot;  test
+archive_project:
+  stage: archive
+  script:
+        - xctool -workspace XXX.xcworkspace -scheme parent -configuration AppStoreDistribution archive -archivePath build/parent
+        - xcodebuild -exportArchive -archivePath build/parent.xcarchive -exportOptionsPlist exportOptions.plist  -exportPath build/parent
+        - fir p $PWD/build/parent/parent.ipa -T 8a7cf204f8c40f39a6ba41db8b44929d
+  only:
+        - master
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;blockquote&gt;
+  &lt;p&gt;在项目根目录下配置 .gitlab-ci.yml 文件&lt;/p&gt;
+&lt;/blockquote&gt;
+
+&lt;blockquote&gt;
+  &lt;ul&gt;
+    &lt;li&gt;上面的配置文件中定义了两个stages。&lt;/li&gt;
+    &lt;li&gt;用于描述两个阶段，一般有build，test，archive，deploy等。&lt;/li&gt;
+    &lt;li&gt;stage 可以在所有job中使用,上面的build_project和archive_project 就是job，每个job 分别对应执行哪个stage。&lt;/li&gt;
+    &lt;li&gt;script 中就是你要执行的脚本。&lt;/li&gt;
+    &lt;li&gt;如果你的项目中没有使用 xcworkspace，就把相应的 －workspace XXX.xcworkspace 改为 -xcodeproject XXX.xcodeproject 。&lt;/li&gt;
+    &lt;li&gt;配置文件中用到了xctool 工具,和xcodebuild 相似，具体安装及使用 &lt;a href=&quot;https://github.com/facebook/xctool&quot;&gt;xctool&lt;/a&gt;&lt;/li&gt;
+    &lt;li&gt;archive 过程将项目export 出 ipa 文件 并上传至 fir 平台。fir 工具可以上传 ipa 文价，具体使用 &lt;a href=&quot;https://github.com/FIRHQ/fir-cli/blob/master/README.md&quot;&gt;fir 使用&lt;/a&gt;&lt;/li&gt;
+    &lt;li&gt;exportOptions.plist是放在根目录下的配置打包参数的，可以参考 xcodebuild –help&lt;/li&gt;
+    &lt;li&gt;only - master 是指只有提交master 分支才有执行 build_project job。&lt;/li&gt;
+  &lt;/ul&gt;
+&lt;/blockquote&gt;
+
+&lt;blockquote&gt;
+  &lt;p&gt;fir 安装&lt;/p&gt;
+&lt;/blockquote&gt;
+
+&lt;pre&gt;&lt;code&gt;gem install fir-cli   
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;blockquote&gt;
+  &lt;p&gt;上传至fir&lt;/p&gt;
+&lt;/blockquote&gt;
+
+&lt;pre&gt;&lt;code&gt;fir p path/to/xxx.ipa -T #API TOKEN# 
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;&lt;img src=&quot;https://raw.githubusercontent.com/tanhuiya/RemoteImages/master/Gitlab-Ci/apitoken.png&quot; alt=&quot;token&quot; /&gt;&lt;/p&gt;
+
+&lt;p&gt;如果一切成功的话，就会有如下 passed 标志 。&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&quot;https://raw.githubusercontent.com/tanhuiya/RemoteImages/master/Gitlab-Ci/result.png&quot; alt=&quot;result&quot; /&gt;&lt;/p&gt;
+
+&lt;p&gt;小结，在测试，打包过程中可能会出现许多奇怪的错误，可以自己google或者询问我。&lt;/p&gt;
+
+&lt;p&gt;&lt;a href=&quot;https://gitlab.oneitfarm.com/tanhui/iOS_Ci_Test&quot;&gt;demo 地址&lt;/a&gt;&lt;/p&gt;
+
+&lt;h2 id=&quot;fastlane&quot;&gt;Fastlane&lt;/h2&gt;
+
+&lt;h3 id=&quot;xctool-fir-fir-&quot;&gt;上述是使用xctool 打包并上传fir ，测试人员可以去fir 的网站扫码下载。这里介绍另一种方式。这里安装什么的我就不赘述了，官方都有，就将个人是怎么使用的。&lt;/h3&gt;
+
+&lt;p&gt;整个过程还是遇到很多问题的，整个过程不断google，个人从ruby环境2.0 切换到2.3 ，最后在2.2.3 上才ok。&lt;/p&gt;
+
+&lt;p&gt;Fastlane 简化了测试，打包，上传testFlight 功能，其实包含了上述 xctool 的所有功能。Fastlane 每个过程都用一个lane 标示。&lt;/p&gt;
+
+&lt;p&gt;自动测试：&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;lane :test do
+scan({
+  workspace:&quot;ParentAndSchool.xcworkspace&quot;,
+  scheme:&quot;parent&quot;,
+  device:&quot;iPhone 6s&quot;,
+  clean: true
+})
+end
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;看一下scan 中的参数，workspace 表示项目的命名空间，如果你用cocoapods 集成是有这个文件的，如果没有使用xcworkspace ,这里参数就改为 project，对应的就是 xxx.xcodeproj 文件。&lt;/p&gt;
+
+&lt;p&gt;打包&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;lane :archive do
+    increment_build_number(
+        xcodeproj: &quot;./jyb_ios_parent/parent/frameworks/runtime-src/proj.ios_mac/parent.xcodeproj&quot;
+    )
+    gym(
+        workspace: &quot;ParentAndSchool.xcworkspace&quot;,
+        scheme: &quot;parent&quot;,
+        output_directory:&quot;build&quot;,
+        output_name: &quot;jyb.ipa&quot;
+    )
+end
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;archive 这个lane 我做了两个action，分别是 increment_build_number 和 gym 。&lt;/p&gt;
+
+&lt;ul&gt;
+  &lt;li&gt;increment_build_number 这个动作是增加build号，我们知道，上传appstore 时build号要增加，这个需要xcode中一些配置，可以看&lt;a href=&quot;https://developer.apple.com/library/content/qa/qa1827/_index.html&quot;&gt;这里&lt;/a&gt;,如果你没配置好，fastlane 跑脚本的时候不会直接挂掉，只会有提示， 到时候上传时就会失败。&lt;/li&gt;
+  &lt;li&gt;gym 这个action 用来打包，参数就不用多说了。&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;上传testFlight&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;lane :testFlight do
+#for firwall
+ENV[&quot;DELIVER_ITMSTRANSPORTER_ADDITIONAL_UPLOAD_PARAMETERS&quot;] = &quot;-t DAV&quot;
+pilot(
+    ipa:&quot;build/jyb.ipa&quot;,
+    username: &quot;*******@corp-ci.com&quot;,
+    skip_waiting_for_build_processing: true
+)
+  	end
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;pilot 是可以将包自动发布到itunes testFlight 后台的，一开始怎么也传不上去，好像是网络之类的问题，后来才发现需要加上下面这句话。(官方文档还是要好好读的)&lt;/p&gt;
+
+ 	ENV[“DELIVER_ITMSTRANSPORTER_ADDITIONAL_UPLOAD_PARAMETERS”] = “-t DAV”
+
+&lt;p&gt;具体某个action 的参数及使用，可以通过命令 fastlane action *** ,例如(fastlane action gym)查看。&lt;/p&gt;
+
+&lt;p&gt;另外在搭配 gitlab－ci 的过程中，发现每次archive 出来的包，到上传的时候总是说ipa文件找不到。因为gitlab 每个job 之后都会还原仓库的状态，就是archive 这个job 结束后，由于ipa 文佳不属于git仓库，被删了。解决办法如下，修改 .gitlab-ci.yml：&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt; archive_parent_project:
+  stage : archive
+  script :
+         - fastlane archive
+  only:
+         - master
+  cache:
+     paths :
+         - build/
+         - build/jyb.ipa
+     key: &quot;build&quot;
+     untracked: true
+upload_testFlight:
+  cache:
+     paths :
+         - build/
+         - build/jyb.ipa
+     key: &quot;build&quot;
+     untracked: true
+  stage : testFlight
+  script :
+         - fastlane testFlight
+  only:
+         - master
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;添加缓存文件，指定每个job结束后不删除build 布目录下的文件。&lt;/p&gt;
+</description>
+                <link>http://tanhuiya.github.io/gitlab-ci/ios/2016/08/16/gitlab-ci</link>
+                <guid>http://tanhuiya.github.io/gitlab-ci/ios/2016/08/16/gitlab-ci</guid>
+                <pubDate>Tue, 16 Aug 2016 17:50:00 +0800</pubDate>
+        </item>
+
+        <item>
+                <title>TDD测试</title>
+                <description>&lt;h1 id=&quot;tdd&quot;&gt;TDD&lt;/h1&gt;
+
+&lt;h3 id=&quot;test-driven-developmenttdd&quot;&gt;测试驱动开发（Test Driven Development,缩写TDD），它的基本思想就是在开发功能代码之前，先编写测试代码。也就是说在明确要开发某个功能后，首先思考如何对这个功能进行测试，并完成相应的测试用例，然后编写相关代码满足这些测试，然后循环添加这些功能，直至开发结束。&lt;/h3&gt;
+
+&lt;h1 id=&quot;tdd-&quot;&gt;TDD 的优点&lt;/h1&gt;
+
+&lt;ul&gt;
+  &lt;li&gt;开发完成即完工。传统的编码方式很难知道什么时候编码结束了，TDD模式下开发人员可以明确自己的编码工作已经结束了。&lt;/li&gt;
+  &lt;li&gt;代码大部分保持在高质量状态。&lt;/li&gt;
+  &lt;li&gt;减少文档和代码之间的差别。&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;h1 id=&quot;section&quot;&gt;开发过程:&lt;/h1&gt;
+
+&lt;ul&gt;
+  &lt;li&gt;明确当前要完成的功能。可以记录成一个 TODO 列表。&lt;/li&gt;
+  &lt;li&gt;快速完成针对此功能的测试用例编写。&lt;/li&gt;
+  &lt;li&gt;测试代码编译不通过。&lt;/li&gt;
+  &lt;li&gt;编写对应的功能代码。&lt;/li&gt;
+  &lt;li&gt;测试通过。&lt;/li&gt;
+  &lt;li&gt;对代码进行重构，并保证测试通过。&lt;/li&gt;
+  &lt;li&gt;循环完成所有功能的开发。&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;h1 id=&quot;section-1&quot;&gt;第1次迭代 用户场景&lt;/h1&gt;
+
+&lt;p&gt;&lt;img src=&quot;https://github.com/tanhuiya/RemoteImages/blob/master/Tests/Example.png?raw=true&quot; alt=&quot;example&quot; /&gt;&lt;/p&gt;
+
+&lt;p&gt;用户场景&lt;/p&gt;
+
+&lt;ul&gt;
+  &lt;li&gt;作为用户，我要看到文章列表。&lt;/li&gt;
+  &lt;li&gt;作为用户，我要切换分类，看到不同的文章。&lt;/li&gt;
+  &lt;li&gt;作为用户，当我点击更多时，我要看到更多的分类。&lt;/li&gt;
+  &lt;li&gt;作为用户，我可以刷新最新的数据。&lt;/li&gt;
+  &lt;li&gt;作为用户，我可以获取更多的数据。&lt;/li&gt;
+  &lt;li&gt;作为用户，我要看到上方的轮播图。&lt;/li&gt;
+  &lt;li&gt;作为用户，我点击没一个文章，要进入文章详情。&lt;/li&gt;
+  &lt;li&gt;作为用户，我点击轮播图，要进入文章详情。&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;初步构建模块结构图
+&lt;img src=&quot;https://github.com/tanhuiya/RemoteImages/blob/master/Tests/TDD-case.png?raw=true&quot; alt=&quot;struct&quot; /&gt;&lt;/p&gt;
+
+&lt;h2 id=&quot;tdd---model&quot;&gt;TDD - Model&lt;/h2&gt;
+&lt;blockquote&gt;
+  &lt;p&gt;我们看到列表的每个条目都会显示 title和 content。
+那么我们就可以先编写测试用例。&lt;/p&gt;
+
+  &lt;pre&gt;&lt;code&gt;- (void)testInitial {
+    ArticalModel * artical = [ArticalModel new];
+}
+&lt;/code&gt;&lt;/pre&gt;
+&lt;/blockquote&gt;
+
+&lt;blockquote&gt;
+  &lt;p&gt;编译，显然不会通过，因为我们没有 ArticalModel 这个类，所以在我们的项目的代码里创建一个 ArticalModel 这个类。再编译，通过。此时不管时我们的测试的代码，还是项目的代码，都没有可以重构的。&lt;/p&gt;
+
+  &lt;p&gt;接下来，我们看到列表里有title ,content, 日期和图片，对应到我们ArticalModel 里应该也有。接下来编写我们的测试用例。&lt;/p&gt;
+
+ 	- (void)testInitial_with_infomation {
+  &lt;pre&gt;&lt;code&gt;    ArticalModel * artical = [ArticalModel new];
+    artical.title = @&quot;&quot;;
+    artical.name = @&quot;&quot;;
+    artical.date = @&quot;&quot;;
+    artical.imageUrl = @&quot;&quot;;
+    XCTAssertNotNil(artical,&quot;artical shouldNot be nil&quot;);
+} 编译，失败。因为我们的Artical 里没有title，name等属性。好，那我们为 Artical 添加这些属性。
+
+@interface ArticalModel : NSObject
+@property(nonatomic , strong) NSString* title;
+@property(nonatomic , strong) NSString* name;
+@property(nonatomic , strong) NSString* date;
+@property(nonatomic , strong) NSString* imageUrl;
+@end
+&lt;/code&gt;&lt;/pre&gt;
+&lt;/blockquote&gt;
+
+&lt;blockquote&gt;
+  &lt;p&gt;ok,编译通过，那看看我们的测试。测试通过了。
+我们的最简易的模型先到这里。接下来，管理模型的是ArticalManager ，新建 ArticalManagerTest 测试类，同样测试初始化代码。&lt;/p&gt;
+
+  &lt;pre&gt;&lt;code&gt;- (void)testInitialManager{
+    ArticalManager * manager = [ArticalManager new];
+    XCTAssertNotNil(manager ,@&quot;manager should not be nil&quot;);
+} 编译出错，同样，新建ArticalManager 类并导入。 articalManager 里是放 ArticalModel 的，所以接下来测试获取所有 AricalModel。
+
+- (void)testGetArticalsNotNil{
+    ArticalManager * manager = [ArticalManager new];
+    id articals = manager.articals;
+    XCTAssertNotNil(articals,@&quot;articals should not be nil&quot;);
+} 同样，编译报错，因为我们的ArticalManager 里没有articals属性，我们给ArticalManager 加上artical 属性。
+
+@interface ArticalManager : NSObject
+@property(nonatomic , strong) NSArray* articals;
+@end
+&lt;/code&gt;&lt;/pre&gt;
+&lt;/blockquote&gt;
+
+&lt;blockquote&gt;
+  &lt;p&gt;编译成功，但是测试没有通过，显然，因为我们的articals 没有初始化，默认为空。我们默认情况下应该返回一个空数组，再为ArticalManager 里实现 articals 的懒加载方法。&lt;/p&gt;
+
+  &lt;pre&gt;&lt;code&gt;@implementation ArticalManager
+-(NSArray*)articals{
+    if (!_articals) {
+        _articals = @[];
+    }
+    return _articals;
+}
+@end
+&lt;/code&gt;&lt;/pre&gt;
+&lt;/blockquote&gt;
+
+&lt;blockquote&gt;
+  &lt;p&gt;再次编译。测试通过，这时看看测试代码发现有地方可以重构，两个测试方法里都创建了ArticalManager 新的实例&lt;/p&gt;
+
+  &lt;pre&gt;&lt;code&gt;- (void)testInitialManager{
+    ArticalManager * manager = [ArticalManager new];
+    XCTAssertNotNil(manager ,@&quot;manager should not be nil&quot;);
+}
+- (void)testGetArticalsNotNil{
+    ArticalManager * manager = [ArticalManager new];
+    id articals = manager.articals;
+    XCTAssertNotNil(articals,@&quot;articals should not be nil&quot;);
+} 我们可以把 manager 抽出来，变为测试类的一个属性，初始化方法放在 setUp 里，代码就变成这样
+
+- (void)setUp {
+    [super setUp];
+    self.manager = [ArticalManager new];
+}
+- (void)testInitialManager{
+    XCTAssertNotNil(self.manager ,@&quot;manager should not be nil&quot;);
+}
+- (void)testGetArticalsNotNil{
+    id articals = self.manager.articals;
+    XCTAssertNotNil(articals,@&quot;articals should not be nil&quot;);
+} 接下来，我们的ArticalManager 应该可以添加一个 文章的模型。
+
+- (void)testAddAnArticalModel{
+    ArticalModel* artical = [ArticalModel new];
+    [self.manager addArticalModel:artical];
+    XCTAssertEqual(1,self.manager.articals.count,@&quot;should have  one artical&quot;);
+} 编译报错。那我们为 ArticalManager 添加 addArticalModel 的接口,并完成它的实现。
+
+－(void)addArticalModel:(ArticalModel*)artical{
+    [self.articals addObject : artical];
+} 编译报错，self.articals 没有addObject方法，因为articals 是 NSArray 类型的，我们把它定义成NSMutableArray再看看，修改如下
+
+@property(nonatomic , strong) NSMutableArray* articals;
+-(NSMutableArray*)articals{
+    if (!_articals) {
+        _articals =[ @[] mutableCopy ];
+    }
+    return _articals;
+} 编译，测试通过，可以正常添加ArticalModel。再取出来测试一下是不是我们添加的 ArticalModel 
+
+- (void)testAddAnArticalModel{
+    ArticalModel* artical = [ArticalModel new];
+    [self.manager addArticalModel:artical];
+    XCTAssertEqual(1,self.manager.articals.count,@&quot;should have  one artical&quot;);
+    
+    artical.title = @&quot;titleTest&quot;;
+    XCTAssertEqual(@&quot;titleTest&quot;,[self.manager.articals[0] title],@&quot;artical title should be equal&quot;);
+} 果然测试通过，那要是我们随便添加一个模型试试看
+
+- (void)testAddIlegalModel{
+    NSObject* illegalModel = [NSObject new];
+    [self.manager addArticalModel: illegalModel];
+    XCTAssertEqual(1,self.manager.articals.count,@&quot;should have  one artical&quot;);
+} 通过了，但这不应该是一个成功的测试，或者说上一步断言编写不正确，那我们修改测试用例，
+
+- (void)testAddIlegalModel{
+    NSObject* illegalModel = [NSObject new];
+    [self.manager addArticalModel: illegalModel];
+    XCTAssertEqual(0,self.manager.articals.count,@&quot;should have no articals&quot;);
+} 测试不通过，因为非法的模型已经被加到 articals 数组里去了，然而，不是什么对象我们都可以给它添加进我们的ArticalManager 的，我们的ArticalManager 要为 TableView 服务，所以要严格控制 ArticalManager 数组内的元素。  
+&lt;/code&gt;&lt;/pre&gt;
+
+  &lt;p&gt;如何控制呢，可以在添加前判断一下被添加的对象是不是 Artical 类。但是这种代码可扩展性低，将来如果tableView 需要显示其它类型（比如 公告）的cell，而数据格式不完全一样，公告就不该被加进来。&lt;/p&gt;
+
+  &lt;p&gt;第二种方法可以以继承的方式实现，比如我们把ArticalModel 作为基类，将来扩展的 BroadCastModel 可以继承 ArticalModel ,因此在添加进 Articals 数组的时候我们直接使用基类的指针判读类型。&lt;/p&gt;
+
+  &lt;p&gt;第三种方法使用interface 的方式，对应于 OC 的protocal ，协议（接口）相比于类，耦合度更低。假设我还有一种模型 MessageModel 需要显示，其数据模型和 BroadCastModel 相似 ，即需要被加进去 articals 数组，用第二种方法实现让 MessageModel 继承 BroadCastModel ，同样可以达到需求 ， 但是如果日后业务需求增加，需要更多的显示种类，一昧的使用继承的方式将导致整棵模型树层级越来越深。假设有需求，需要改变你的层级树中某一个Model 的属性或者私有方法，那如果继承了它的子类用到了该属性或方法，就要相应的去修改。当我需要测试 MessageModel 时，需要纵向依赖BroadCastModel 和 ArticalModel ，一旦业务抽离，在另一个模块或者项目中使用 MessageModel 时，需要将这里的继承树连根拔起。所以，如果你的继承关系层级达到了三层或者更多，就应该停下来思考一下设计是否合理。 采用 interface 或 protocal 的方式，是横向依赖，不管是ArticalModel 或者 MessageModel ，我要做tableView 的数据源，就要实现 TableViewModelCellProtocal 的方法, 这样就能减少耦合度。其实这解决的是如何在 tableView 中显示不同的数据格式的数据。&lt;/p&gt;
+
+  &lt;p&gt;因为我们这边只是测试的实例，我们就采用最简单的第一种方法，在 addArticalModel 中添加如下代码&lt;/p&gt;
+
+  &lt;pre&gt;&lt;code&gt;if (![artical isKindOfClass:[ArticalModel class]]) {
+    return;
+} 接下来，考虑到我们的数据是从网络回来，肯定不是一条记录一条记录的添加，那我们就编写批量数据的测试
+
+- (void)testAddArticalArrToManager{
+    NSArray * articalArr = nil;
+    [self.manager.articals addArticalArrs : articalArr];
+    XCTAssertEqual(0,[self.manager.articals count],@&quot;articals should be eqmpty&quot;);
+} 编译失败，我们为 ArticalManager 添加该接口
+
+-(void)addArticalArrs: (NSArray &amp;lt;NSObject * &amp;gt;* )aricalArr{   
+} 编译测试均通过，接下来我们看一下添加一个真实的模型数组，
+
+-(void)testAddRealArticalArrToManager{
+    ArticalModel * articalModel = [ArticalModel new];
+    articalModel.name = @&quot;artical_one&quot;;
+    NSArray * articalArr = @[articalModel];
+    [self.manager addArticalArrs : articalArr];
+    XCTAssertEqual(1,[self.manager.articals count],@&quot;articals should be eqmpty&quot;);
+} 测试不通过，原因是addArticalArrs 方法里没有实现，我们将添加它的实现如下，
+
+[self.articals addObjectsFromArray: articalArr];
+&lt;/code&gt;&lt;/pre&gt;
+&lt;/blockquote&gt;
+
+&lt;blockquote&gt;
+  &lt;p&gt;测试全都pass ，我们再看看我们添加的是不是正确的模型，添加如下代码&lt;/p&gt;
+
+  &lt;pre&gt;&lt;code&gt;XCTAssertEqual(articalModel.name , [self.manager.articals[0] name],@&quot;they should be same name&quot;); 果然是同一个，测试通过，再试试添加非法的Array,我们设置的断言是不应该被加入数组。
+
+-(void)testAddIllegalArrToManager{
+    NSArray * articalArr = @[@&quot;1&quot;,@&quot;haha&quot;,@(2)];
+    [self.manager addArticalArrs : articalArr];
+    XCTAssertEqual(0,self.manager.articals.count,@&quot;aricals should not be added&quot;);
+} 测试失败，结果是0 != 3 ，我们修改代码来满足我们的测试，我们希望它只要有一个元素不合格，就都不能插入。
+
+-(void)addArticalArrs: (NSArray &amp;lt;ArticalModel *&amp;gt;* )articalArr{
+    __block BOOL illegal = false;
+    [articalArr enumerateObjectsUsingBlock:^(NSObject* obj, NSUInteger idx, BOOL *stop){
+        if (![obj isKindOfClass:[ArticalModel class]]) {
+            illegal = true;
+            *stop = YES;
+        }
+    }];
+    if (!illegal) {
+       [self.articals addObjectsFromArray: articalArr];
+    }
+} 好了这次通过了，看看有没有什么可以重构的，我们可以把判断元素合格提取出来，将来如果需要更换判断方式，比如采用协议来验证，就可以很方便的修改
+
+#pragma mark privateMethod
+-(BOOL)isItemVaild:(NSObject*)obj{
+    return  [artical isKindOfClass:[ArticalModel class]];
+} 提取出私有方法，isItemValid ,现在ArticalManager 代码如下
+
+-(void)addArticalModel:(ArticalModel*)artical{
+    if([self isItemVaild: artical]){
+        [self.articals addObject:artical];
+    };
+}
+-(void)addArticalArrs: (NSArray &amp;lt;ArticalModel *&amp;gt;* )articalArr{
+    __block BOOL illegal = false;
+    [articalArr enumerateObjectsUsingBlock:^(NSObject* obj, NSUInteger idx, BOOL *stop){
+        if(![self isItemVaild: obj]){
+            illegal = YES,*stop = YES;
+        }
+    }];
+    if (!illegal) {
+       [self.articals addObjectsFromArray: articalArr];
+    }
+}
+#pragma mark privateMethod
+-(BOOL)isItemVaild:(NSObject*)obj{
+    return  [obj isKindOfClass:[ArticalModel class]];
+} 接下来还有清空 artical 数组的测试己，编写，过程是一样的，假设该过程我们已经完成，现在回看我们的 ArticalManager 还有没有什么可以修改的。 articals 作为 MSMutableArray 暴露在头文件，这是相当危险的，也就是说可以让外部的类随意修改元素个数或articals 实例。所以我们将头文件的 articals 改为外界只读的。在ArticalManger.h 文件里声明articals 为NSArray，并且只读，.m 文件里使用 _articals 变量，该变量在对象创建时实例化。
+
+.h 
+@property(nonatomic , strong , readonly) NSArray* articals;
+.m
+@interface ArticalManager(){
+    NSMutableArray*  _articals;
+}
+@end
+
+@implementation ArticalManager
+
+-(instancetype)init{
+    _articals = @[].mutableCopy;
+    return self;
+}
+-(void)addArticalModel:(ArticalModel*)artical{
+    if([self isItemVaild: artical]){
+        [_articals addObject:artical];
+    };
+}
+...
+&lt;/code&gt;&lt;/pre&gt;
+&lt;/blockquote&gt;
+
+&lt;p&gt;大概 Model 层就是这样子的，测试的思路大概也就是这样，然而这些测试还只是冰山一角。完整写下来，测试代码大概是功能代码的2～3 倍。&lt;/p&gt;
+</description>
+                <link>http://tanhuiya.github.io/ios/2016/08/13/TDD%E5%AE%9E%E4%BE%8B%E8%AF%A6%E8%A7%A3</link>
+                <guid>http://tanhuiya.github.io/ios/2016/08/13/TDD实例详解</guid>
+                <pubDate>Sat, 13 Aug 2016 12:50:00 +0800</pubDate>
+        </item>
+
+        <item>
+                <title>iOS 单元测试详解</title>
+                <description>&lt;h1 id=&quot;section&quot;&gt;单元测试&lt;/h1&gt;
+
+&lt;h2 id=&quot;section-1&quot;&gt;为什么需要单元测试&lt;/h2&gt;
+&lt;ul&gt;
+  &lt;li&gt;减少代码中的低级错误。&lt;/li&gt;
+  &lt;li&gt;有效的降低bug的出现率。&lt;/li&gt;
+  &lt;li&gt;增强可维护性。&lt;/li&gt;
+  &lt;li&gt;有助于设计：写单元测试首先给了你一个如何设计 API 的清晰视角。&lt;/li&gt;
+  &lt;li&gt;质量保证，根据我的自身经历，让一个开发者记得要测试所有的特性，在代码改变后回归测试所有的功能以及新增或移除的功能，几乎是一件不可能的事情。&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;被测试的对象，方法大概分为三种:&lt;/p&gt;
+
+&lt;ul&gt;
+  &lt;li&gt;有明确的返回值，采用返回值验证法，验证返回值是否符合预期。&lt;/li&gt;
+  &lt;li&gt;没有返回值，但方法内部修改了对象的属性或者状态，采用状态验证法，是否符合预期。&lt;/li&gt;
+  &lt;li&gt;依赖于外部的类，方法，会调用外部的方法，采用行为验证法。&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;单元测试可能遇到的问题&lt;/p&gt;
+
+&lt;ul&gt;
+  &lt;li&gt;测试上下文有太多依赖，设计的耦合性太高。&lt;/li&gt;
+  &lt;li&gt;运行的速度缓慢，你的单元测试中可能存在外部系统，列入数据库，网络请求，文件系统等。&lt;/li&gt;
+  &lt;li&gt;改变一个地方，多处测试受影响，可能是测试设计的问题，也可能是代码的粒度拆分不够。&lt;/li&gt;
+  &lt;li&gt;怎样测试私有方法——私有方法有太多的行为 。&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;h2 id=&quot;section-2&quot;&gt;测试哪些东西&lt;/h2&gt;
+
+&lt;p&gt;你在测试哪个组件切面（component aspect）？
+这个特性做什么用？你测试的具体行为需求是什么？
+针对行为的测试，这是一种行为驱动开发技术(BDD)，可以参考 &lt;a href=&quot;https://codeutopia.net/blog/2015/03/01/unit-testing-tdd-and-bdd/&quot;&gt;unit-testing-tdd-and-bdd&lt;/a&gt;。那什么是行为？
+你设计的App中有一个对象，它有一个接口定义了其方法和依赖关系。这些方法和依赖，声明了你对象的约定。它们定义了如何与你应用的其他部分交互，以及它的功能是什么。它们定义了对象的行为。这同时也是你的目标，测试对象的行为。
+比如点击按钮是否触发了某个行为。&lt;/p&gt;
+
+&lt;h2 id=&quot;section-3&quot;&gt;怎样进行单元测试&lt;/h2&gt;
+
+&lt;p&gt;单元测试本质上来说就是用断言来判断对象是否达到预期的行为。 &lt;br /&gt;
+单元测试的关注点单一，单元测试需要保证你每个测试用例是针对一个单元，而不是一个有很多复杂依赖注入的综合行为。 &lt;br /&gt;
+我们尽可能让类方法的职责单一，这样才能保证变化点都集中在被测试的单元中。 &lt;br /&gt;
+单元测试一般比较静态，它只是验证某一动作的正确性。
+大部分单元测试将针对对象的状态，来断言一个特定的交互是否发生，或者一个特定值是否返回。将依赖提取出来，这可以允许你轻松mock。
+注意，你不该将对象的所有依赖都暴露在头文件中，尤其是你开始测试的时候，这样看起来很诱人，但会破坏你类结构的封装，你的接口应该只表述设计需求。&lt;/p&gt;
+
+&lt;ul&gt;
+  &lt;li&gt;充分了解需要测试的类的行为特性。&lt;/li&gt;
+  &lt;li&gt;对代码重构，针对这些行为编写单元测试。&lt;/li&gt;
+  &lt;li&gt;使用伪造类避免对其它类的依赖：被测试的方法需要某个对象作为参数，但测试类中并不关心对象的具体实现。&lt;/li&gt;
+  &lt;li&gt;伪造环境避免其它环境的干扰：比如在网络请求异步的环境中，测试代码不好写，可以将该步骤分开，测试请求网络行为，再模拟数据返回，测试网络数据返回后的行为。也可以采用GHUnit等第三方框架。&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;h2 id=&quot;section-4&quot;&gt;单元测试坏的实践&lt;/h2&gt;
+
+&lt;ul&gt;
+  &lt;li&gt;不应该测试构造函数–构造函数中应该是实现类的一些细节，而我们是针对对象的行为做测试，所以构造函数没有值得测的东西。&lt;/li&gt;
+  &lt;li&gt;不要测试私有方法–私有方法意味着私有，如果你觉得你有必要测试私有方法，那可能你的私有方法中做的事太多了，从而违背了单一职责原则。&lt;/li&gt;
+  &lt;li&gt;不要stub私有方法–因为你的私有方法是可以在类中不经通知自由修改的，当stub私有方法后，私有方法修改后可能与你的期望背到而驰，但你的测试还是会通过，这是见很可怕的事情。&lt;/li&gt;
+  &lt;li&gt;不要stub第三方库–比如你stub了[AFNetworking sendRequest]方法，不需要通过实际的网络调用是测试内容更单一，当你更换了这个网络库之后，这个测试用例就会失效，而你实际上stub的目的就是模拟网络请求成功。所以测试中应该封装一层，来代替那个库的全部功能。&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;h3 id=&quot;given--when--then-&quot;&gt;Given / When / Then 模式&lt;/h3&gt;
+
+&lt;p&gt;将测试用例分为三个部分&lt;/p&gt;
+&lt;ul&gt;
+  &lt;li&gt;Given 部分，通过创建对象，活着stub对象，将测试的系统设定到指定的状态，来设置测试的环境。&lt;/li&gt;
+  &lt;li&gt;When 部分包含了我们具体需要测试的代码。&lt;/li&gt;
+  &lt;li&gt;Then 部分是验证测试的结果，是否达到我们的期望，对象是否有改变，返回值是否合格等。&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;下面是家园宝测试作业是否正常继续下载的例子：&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;-(void)testResumeWithHomeWorkModel{
+  //Given
+  if (!self.manager) {
+      self.manager = [DownLoadHomeWorkManager manager];
+  }
+  HomeModel* homeModel = [[HomeModel alloc]init];
+  homeModel.pid = @&quot;497&quot;;
+  //When
+  [self.manager resumeTaskWith:homeModel];
+  //Then    
+  XCTAssertEqual(homeModel.status, HomeworkStateDownloading);
+}
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;h3 id=&quot;mock&quot;&gt;Mock&lt;/h3&gt;
+
+&lt;p&gt;在iOS测试中的mock框架可以采用OCMock，我们用mock来管理一个对象的所有依赖。当被测试的方法里耦合着其它对象时，但是你不想让这个对象的返回值对这个方法有影响，你可以通过mock 的方式返回一个默认值。 &lt;br /&gt;
+另外，我们的测试代码中不能过度的使用mock，mock除去了被测试对象以外的其它对象，这样其它对象修改了之后，这个被测试的对象就不能自动失败。&lt;/p&gt;
+
+&lt;h2 id=&quot;section-5&quot;&gt;单元测试的要求&lt;/h2&gt;
+&lt;ul&gt;
+  &lt;li&gt;测试用例应该是自解释且独立的：每个测试用例应该不依赖于其它方法的结果作为输入，没有网络请求，没有数据库操作，保证其原子性。&lt;/li&gt;
+  &lt;li&gt;测试方法需要解释测试的目的：如 -(void)testObject 就不是一种规范的写法，每个方法的目标应该是单一的，大多数每个方法里都有一个断言。&lt;/li&gt;
+  &lt;li&gt;断言语句需要解释测试者的用途：如XCTAssertNotNil,[xxx should]beNil],等等。&lt;/li&gt;
+  &lt;li&gt;判断某个测试是否成功是检测方法影响的数据有没有合理的变化：由于单元测试是使用断言来判断的，单元测试中不会对显示层进行约束，所以限定了单元测试的范围，即引起数据的变化。&lt;/li&gt;
+  &lt;li&gt;对所有暴露的属性和方法提供测试，私有方法则不必：测试私有方式可以通过子类化，设计分类，kvo等方式获取私有或者内部对象。&lt;/li&gt;
+  &lt;li&gt;变化需要新测试的支持：当对外的接口的实现发生变化时，需要编写新的测试。&lt;/li&gt;
+  &lt;li&gt;发现bug 并修复后，为了确保修复时成功的，需要进行单元测试。&lt;/li&gt;
+  &lt;li&gt;测试有其他依赖时需要避免其它依赖的副作用，可以采用依赖注入的方法， &lt;a href=&quot;https://objccn.io/issue-15-3/&quot;&gt;依赖注入&lt;/a&gt; ，具体可以使用mock 或者真实对象注入。&lt;/li&gt;
+  &lt;li&gt;对每一个功能类都要做单元测试。&lt;/li&gt;
+  &lt;li&gt;单元测试需要描述和记录代码需要实现的所有需求。&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;h2 id=&quot;section-6&quot;&gt;单元测试框架&lt;/h2&gt;
+
+&lt;h3 id=&quot;xctest&quot;&gt;XCTest&lt;/h3&gt;
+
+&lt;p&gt;XCTest 是iOS自带的一个测试框架，相比于其他第三方集成度高，能满足大部分测试需求。但是并没有提供mock的功能。&lt;/p&gt;
+
+&lt;h3 id=&quot;ocmock&quot;&gt;OCMock&lt;/h3&gt;
+
+&lt;p&gt;OCMock 是一个OC的模拟对象库，他提供了关于mock 和 stub 的功能，可以和XCTest一起使用。它看起来像这样。&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;- (void)testAddDownLoadHomeWorkModel{
+   if (!self.manager) {
+       self.manager = [DownLoadHomeWorkManager manager];
+   }
+   HomeModel* homeModel = [[HomeModel alloc]init];
+   //mock 出一个dataCenter
+   id dataCenter = OCMClassMock([HomeworkDataCenter class]);
+   self.manager.dataCenter = dataCenter;
+   homeModel.pid = @&quot;497&quot;;
+   //该方法被调用时返回1
+   OCMStub([dataCenter insertHomeModel:homeModel]).andReturn(1);
+   [self.manager addDownLoadTask:homeModel];
+   XCTAssertEqual(homeModel.status, HomeworkStateDownloading);
+}
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;h3 id=&quot;kiwi&quot;&gt;Kiwi&lt;/h3&gt;
+&lt;p&gt;&lt;a href=&quot;https://github.com/kiwi-bdd/Kiwi&quot;&gt;Kiwi&lt;/a&gt; 是一个行为驱动开发(BDD)的框架，它旨在解决具体问题，帮助开发人员确定应该测什么内容。你不应该关注于测试，而是应该关注于行为。
+该框架相比iOS自带的XCTest，它的语法更类似于自然语言，易读性强。
+Kiwi 更多使用方法点击 &lt;a href=&quot;http://www.tuicool.com/articles/3auQbez&quot;&gt;这里&lt;/a&gt;&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;SPEC_BEGIN(First)
+   describe(@&quot;First&quot;, ^{
+    context(@&quot;create a string&quot;, ^{
+        __block NSString * name = nil;
+        beforeEach(^{
+            name = @&quot;aa&quot;;
+        });
+        it(@&quot;name should be aa&quot;, ^{
+            [[name shouldNot]beNil];
+        }); 
+    });
+});
+SPEC_END
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;h2 id=&quot;section-7&quot;&gt;测试实例&lt;/h2&gt;
+
+&lt;p&gt;&lt;img src=&quot;https://github.com/tanhuiya/RemoteImages/blob/master/Tests/UniTest.png&quot; alt=&quot;pic&quot; /&gt;&lt;/p&gt;
+
+&lt;p&gt;首先，我们来看一下iOS的UIViewController。对代码分析时，发现大量的的逻辑都被写在 .m 文件里，我们知道，UIViewController 在 .h 里面暴露的方法很少，可是 .m 大量的逻辑单元测试又不能不做，这就相当于要对代码中的private 方法进行测试。
+进一步分析发现，如果在ViewController 中 添加一个ViewModel层，将UIViewController 里的业务逻辑放入中间层，该层可以负责网络的请求，数据的处理等。一方面会使ViewController 更加简洁和实现单一原则，另一方面保证了逻辑的可能性，该中间层会对ViewController 暴露一些接口。在MVC的设计模式中，ViewController 承受了太多的任务导致测试的难度增加，将ViewController 拆分（MVVM）就会更加有利于单元测试。&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;describe(@&quot;Bind ViewModel&quot;, ^{
+    __block WrapJSMessageView* replyView = nil;
+    __block WrapJSMessageViewModel* replyViewModel = nil;
+    replyView = [[WrapJSMessageView alloc]init];
+    replyViewModel = [[WrapJSMessageViewModel alloc]init];
+    replyView.replyViewModel = replyViewModel;
+    
+    context(@&quot;Test Text Binding  &quot;, ^{
+        it(@&quot;Image Should NotNil&quot;, ^{
+            [[replyViewModel.image shouldNot]beNil];
+        });
+        
+        //select Image;
+        {
+            UIImage* image = [UIImage new];
+            NSDictionary* dict = @{};
+            [dict stub:@selector(objectForKey:) andReturn:image withArguments:@&quot;UIImagePickerControllerOriginalImage&quot;];
+            [replyView imagePickerController:[UIImagePickerController new] didFinishPickingMediaWithInfo:dict];
+            it(@&quot;select Image&quot;, ^{
+                [[replyViewModel.image should]equal:image];
+            });
+        }
+        
+        // clear text
+        {
+            it(@&quot;After reset Image should Be reset&quot;, ^{
+                [[replyView should]receive:@selector(resetReplyView)];
+                replyViewModel.text = nil;
+            });
+        }
+        
+        
+        UIButton* sendBtn = nil;
+        [UIView getViewByTitle:@&quot;发送&quot; rootView:replyView resultView:&amp;amp;sendBtn];
+        
+        // test Click ReplyBtn
+        {
+            it(@&quot;Get Send Btn&quot;, ^{
+                [[sendBtn shouldNot]beNil];
+            });
+        }
+        // Send Btn should Be disable
+        {
+            it(@&quot;Send Btn should Disable&quot;, ^{
+                [[theValue(sendBtn.enabled)should] beFalse];
+            });
+        }
+        
+        //Send Btn should Be disable
+        {
+            it(@&quot;Send Btn should Enable&quot;, ^{
+                replyViewModel.text = @&quot;222&quot;;
+                [[theValue(sendBtn.enabled)should] beFalse];
+            });
+        }
+        
+        // ReplyBtnClicked
+        {
+            [[replyViewModel.replyCommand should]receive:@selector(execute:)];
+            
+            it(@&quot;Send Should Invalid&quot;, ^{
+                [sendBtn sendActionsForControlEvents:UIControlEventTouchUpInside];
+            });
+        }
+        
+    });
+    
+})
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;DetailNewViewController&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;describe(@&quot;DetailNewViewController&quot;, ^{
+    __block DetailNewViewController* detail = [[DetailNewViewController alloc]init];
+    context(@&quot;initial with valid post_id&quot;, ^{
+        
+        id viewModel = OCMClassMock([PostDetailViewModel class]);
+        detail.viewModel = viewModel;
+        detail.postid = @&quot;100&quot;;
+        it(@&quot;initWithPostid should be invoked&quot;, ^{
+            OCMVerify([viewModel initWithPostId:[OCMArg any]]);
+        });
+    });
+    
+    context(@&quot;Inital&quot;, ^{
+        
+        PostDetailViewModel* viewModel = [[PostDetailViewModel alloc]initWithPostId:@&quot;1&quot;];
+        
+        // 测试获取帖子数据
+        {
+            
+            MJRefreshGifHeader* header = nil;
+            //获取header
+            [UIView getRefeshHeader:detail.view resultView:&amp;amp;header];
+            it(@&quot;RefreshController should not be nil&quot;, ^{
+                [[header shouldNot]beNil];
+            });
+            
+            
+            RACCommand* fetchRawCommand = OCMClassMock([RACCommand class]);
+            viewModel.fetchRawDataCommand = fetchRawCommand;
+            
+            [detail viewDidLoad];
+            it(@&quot;should Request Post Data&quot;, ^{
+                OCMVerify([header beginRefreshing]);
+            });
+        }
+        
+        
+        //测试获取评论列表
+        
+        {
+            NSDictionary* returnData = @{
+                                         @&quot;ret&quot;:@(1),
+                                         @&quot;retCode&quot;:@(1),
+                                         };
+            
+            detail.viewModel = viewModel;
+            id fetchReplyCommand = OCMClassMock([RACCommand class]);
+            viewModel.fetchReplyListCommand = fetchReplyCommand;
+            
+            [detail showWithDict:returnData];
+            it(@&quot;Then Request ReplyList Data&quot;, ^{
+                OCMVerify([fetchReplyCommand execute:[OCMArg any]]);
+            });
+        }
+    });
+    
+    context(@&quot;Test Click Collect Btn&quot;, ^{
+        
+        detail.isIntersting = NO;
+        detail.contentData = [NSDictionary mock];
+        PostDetailViewModel* viewModel = [[PostDetailViewModel alloc]init];
+        id command = OCMClassMock([RACCommand class]);
+        viewModel.collectCommand = command;
+        
+        detail.viewModel = viewModel;
+        [detail soucangBtnDidClicked];
+        
+        it(@&quot;Send NetWork should Raised &quot;, ^{
+            OCMVerify([command execute:[OCMArg any]]);
+        });
+        
+    });
+    
+    context(@&quot;Test Click Uncollect Btn&quot;, ^{
+        detail.isIntersting = YES;
+        detail.contentData = [NSDictionary mock];
+        PostDetailViewModel* viewModel = [[PostDetailViewModel alloc]init];
+        id command = OCMClassMock([RACCommand class]);
+        viewModel.unCollectCommand = command;
+        
+        detail.viewModel = viewModel;
+        [detail soucangBtnDidClicked];
+        
+        it(@&quot;Uncollected should Raised &quot;, ^{
+            OCMVerify([command execute:[OCMArg any]]);
+        });
+    });
+    
+    
+    context(@&quot;Test NavgationItem &quot;, ^{
+        UIView* title = detail.titleSegment;
+        it(@&quot;should Not Nil&quot;, ^{
+            [[title shouldNot]beNil];
+        });
+        
+        it(@&quot;should Be UISegmentControl&quot;, ^{
+            [[title should]beKindOfClass:[UISegmentedControl class]];
+        });
+        UISegmentedControl* segTitle = (UISegmentedControl*)title;
+        it(@&quot;should have Three Segment &quot;, ^{
+            [[theValue(segTitle.numberOfSegments) should]equal:@(3)];
+        });
+    });
+    
+})
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;DetailNewViewController+Spec.h&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;#import &quot;DetailNewViewController.h&quot;
+                   
+@interface DetailNewViewController (Spec)
+   
+@property(nonatomic,assign)NSInteger  isIntersting;
+   
+@property(nonatomic , strong) NSDictionary* contentData;
+   
+@property(nonatomic , strong) UISegmentedControl* titleSegment;
+   
+-(void)showWithDict:(NSDictionary*)dict;
+   
+@end
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;// UIView 的分类&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;#import &quot;UIView+Spec.h&quot;
+#import &quot;MJRefresh.h&quot;
+@class MJRefreshGifHeader;
+   
+@implementation UIView (Spec)
+   
++(void)getRefeshHeader:(UIView*)rootView resultView:(UIView**)result{
+   for(UIView * view in rootView.subviews){
+       if ([view isKindOfClass:[MJRefreshGifHeader class]]) {
+           *result = view;
+       }else {
+           [self getRefeshHeader:view resultView:result];
+       }
+   }
+}
+   
++(void)getViewByTitle:(NSString*)title rootView:(UIView*)rootView resultView:(UIView**)result{
+   
+   for(UIView * view in rootView.subviews){
+       if ([view isKindOfClass:[UIButton class]]&amp;amp;&amp;amp;[[(UIButton*)view titleLabel].text isEqualToString:title]) {
+           *result = view;
+       }else {
+           [self getViewByTitle:title rootView:view resultView:result];
+       }
+   }
+}
+@end
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;&lt;a href=&quot;https://objccn.io/issue-15-1/&quot;&gt;BDD实例&lt;/a&gt;&lt;/p&gt;
+
+&lt;h2 id=&quot;section-8&quot;&gt;我遇到的问题&lt;/h2&gt;
+&lt;p&gt;刚开始做单元测试的时候，根本无法下手，帖子模块的版本迭代频繁，业务逻辑复杂，代码行数达到2400行左右。再看代码结构相当混乱。帖子模块所有的数据，包括从网络的发起，数据的接收，界面的显示都混杂在一起，只有少量的view 单独抽了出去，即使是封装的view，数据的显示还是在帖子的控制器中做的。这真的是MVC(Massive-View-Controller)了。为了方便测试，先找几个行为特性测起来，我把网络数据的请求和接受，全部封装到帖子的ViewModel中，抽离出回复框，并给这个view配备了一个ViewModel（因为回复框中也有不少的逻辑），控制器只需要新建并添加就ok了。这样针对回复框的一些行为就可以提取出来测了。帖子页一些行为可以在ViewModel 中测试。 &lt;br /&gt;
+在测试的过程中，由于大量的原生数据的显示逻辑都在帖子页的ViewController中，而在测试这个控制器的一些行为时，无法提供帖子的原生数据，或者说因为原生数据格式复杂而难以高效的注入，导致测试的时程序崩溃。经过思考，觉得还是应该将所有的数据交给ViewModel 管理，ViewController或View 应该仅仅和ViewModel 进行数据上的绑定。这样在测试ViewContrllor时就不会对数据有过多的依赖。在测试ViewModel时也能更集中的测试数据的有效性。&lt;/p&gt;
+
+&lt;h1 id=&quot;section-9&quot;&gt;总结&lt;/h1&gt;
+
+&lt;p&gt;在做单元测试的时候，更多思考一个对象的行为，它的接口应该如何，并减少对实现的关注。这样你会有更加健壮的代码，以及同样杰出的套件。单元测试的代码简单，但是写好单元测试却不是一件简单的事，对程序员的代码质量要求较高，如何有效的组织行为就考验程序员的水平了。从现在开始，让单元测试来帮你描述代码的行为。&lt;/p&gt;
+</description>
+                <link>http://tanhuiya.github.io/ios/2016/08/07/BDD-UniTest</link>
+                <guid>http://tanhuiya.github.io/ios/2016/08/07/BDD-UniTest</guid>
+                <pubDate>Sun, 07 Aug 2016 17:50:00 +0800</pubDate>
+        </item>
+
+        <item>
+                <title>nginx 配置pathInfo</title>
+                <description>&lt;p&gt;网上查了很多资料，但其中是不完整的，不能正确处理path_info.&lt;/p&gt;
+
+&lt;p&gt;首先，修改文件/etc/nginx/fastcgi_params&lt;/p&gt;
+
+&lt;p&gt;修改 SCRIPT_FILENAME 并添加 PATH_INFO 参数,如下：&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;fastcgi_param   QUERY_STRING            $query_string;
+fastcgi_param   REQUEST_METHOD          $request_method;
+fastcgi_param   CONTENT_TYPE            $content_type;
+fastcgi_param   CONTENT_LENGTH          $content_length;
+
+fastcgi_param   SCRIPT_FILENAME         $document_root$fastcgi_script_name;
+fastcgi_param   SCRIPT_NAME             $fastcgi_script_name;
+fastcgi_param   PATH_INFO               $fastcgi_path_info;
+fastcgi_param       PATH_TRANSLATED         $document_root$fastcgi_path_info;
+fastcgi_param   REQUEST_URI             $request_uri;
+fastcgi_param   DOCUMENT_URI            $document_uri;
+fastcgi_param   DOCUMENT_ROOT           $document_root;
+fastcgi_param   SERVER_PROTOCOL         $server_protocol;
+
+fastcgi_param   GATEWAY_INTERFACE       CGI/1.1;
+fastcgi_param   SERVER_SOFTWARE         nginx/$nginx_version;
+
+fastcgi_param   REMOTE_ADDR             $remote_addr;
+fastcgi_param   REMOTE_PORT             $remote_port;
+fastcgi_param   SERVER_ADDR             $server_addr;
+fastcgi_param   SERVER_PORT             $server_port;
+fastcgi_param   SERVER_NAME             $server_name;
+
+fastcgi_param   HTTPS                   $https;
+
+# PHP only, required if PHP was built with --enable-force-cgi-redirect
+fastcgi_param   REDIRECT_STATUS         200;
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;然后修改 /etc/nginx/nginx.conf 文件，在最后添加&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;location ~ [^/]\.php(/|$) {
+    fastcgi_split_path_info ^(.+?\.php)(/.*)$;
+    if (!-f $document_root$fastcgi_script_name) {
+        return 404;
+    }
+
+    fastcgi_pass 127.0.0.1:9000;
+    fastcgi_index index.php;
+    include fastcgi_params;
+}
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;重启nginx ，执行命令 /etc/init.d/nginx restart&lt;/p&gt;
+
+&lt;p&gt;接下来就可以使用PATH_INFO 了；&lt;/p&gt;
+
+&lt;p&gt;参考文章 &lt;a href=&quot;https://www.nginx.com/resources/wiki/start/topics/examples/phpfcgi/#&quot;&gt;https://www.nginx.com/resources/wiki/start/topics/examples/phpfcgi/#&lt;/a&gt;&lt;/p&gt;
+</description>
+                <link>http://tanhuiya.github.io/nginx/php/2016/04/28/nginx-pathinfo</link>
+                <guid>http://tanhuiya.github.io/nginx/php/2016/04/28/nginx-pathinfo</guid>
+                <pubDate>Thu, 28 Apr 2016 17:50:00 +0800</pubDate>
+        </item>
+
+        <item>
+                <title>使用 UICollection 实现瀑布流</title>
+                <description>&lt;p&gt;UICollectionView 瀑布流的简单实现&lt;/p&gt;
+
+&lt;p&gt;UICollectionView 比 tableView 灵活，功能也强大很多。系统实现了流式布局，但用处还有很多限制。&lt;/p&gt;
+
+&lt;p&gt;要想实现更灵活的布局，就咬重写UICollectionViewLayout。&lt;/p&gt;
+
+&lt;p&gt;Demo地址：&lt;a href=&quot;https://github.com/tanhuiya/WaterfallCollectionLayout&quot;&gt;WaterfallCollectionLayout&lt;/a&gt;&lt;/p&gt;
+
+&lt;p&gt;先看下实现效果：&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&quot;http://images2015.cnblogs.com/blog/884671/201601/884671-20160126171726238-851040777.gif&quot; width=&quot;320&quot; height=&quot;490&quot; /&gt;　&lt;/p&gt;
+
+&lt;p&gt;废话不多说，直接上代码：&lt;/p&gt;
+
+&lt;p&gt;先看WaterfallCollectionLayout.m&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;#import &quot;WaterfallCollectionLayout.h&quot;
+#define colMargin 5
+#define colCount 4
+#define rolMargin 5
+@interface WaterfallCollectionLayout ()
+//数组存放每列的总高度
+@property(nonatomic,strong)NSMutableArray* colsHeight;
+//单元格宽度
+@property(nonatomic,assign)CGFloat colWidth;
+@end
+该类要重写以下方法：
+
+//完成布局前的初始工作
+-(void)prepareLayout;
+
+//collectionView的内容尺寸
+-(CGSize)collectionViewContentSize;
+
+//为每个item设置属性
+-(UICollectionViewLayoutAttributes *)layoutAttributesForItemAtIndexPath:(NSIndexPath *)indexPath;
+
+//获取制定范围的所有item的属性
+-(NSArray&amp;lt;UICollectionViewLayoutAttributes *&amp;gt; *)layoutAttributesForElementsInRect:(CGRect)rect;
+
+-(BOOL)shouldInvalidateLayoutForBoundsChange:(CGRect)newBounds;
+每次调用会清空colsHeight数组里的信息：
+
+//完成布局前的初始工作
+-(void)prepareLayout{
+	[super prepareLayout];
+	self.colWidth =( self.collectionView.frame.size.width - (colCount+1)*colMargin )/colCount;
+	//让它重新加载
+	self.colsHeight = nil;
+}
+通过遍历colHeight数组里的所有列来获得最长的那一列，返回contentsize
+
+//collectionView的内容尺寸
+-(CGSize)collectionViewContentSize{
+	NSNumber * longest = self.colsHeight[0];
+	for (NSInteger i =0;i&amp;lt;self.colsHeight.count;i++) {
+		NSNumber* rolHeight = self.colsHeight[i];
+		if(longest.floatValue&amp;lt;rolHeight.floatValue){
+			longest = rolHeight;
+		}
+	}
+	return CGSizeMake(self.collectionView.frame.size.width, longest.floatValue);
+}
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;每个cell要出来时这个方法会被调用，在此方法中设置该cell的frame。&lt;/p&gt;
+
+&lt;p&gt;注意heightBlock是外部控制器传进来的block用以计算每个cell的高度，现在我只是设置了随机数。如果没有传block进来我这里直接让他崩溃了。&lt;/p&gt;
+
+&lt;p&gt;//为每个item设置属性&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;-(UICollectionViewLayoutAttributes *)layoutAttributesForItemAtIndexPath:(NSIndexPath *)indexPath{
+	UICollectionViewLayoutAttributes* attr = [UICollectionViewLayoutAttributes layoutAttributesForCellWithIndexPath:indexPath];
+	NSNumber * shortest = self.colsHeight[0];
+	NSInteger  shortCol = 0;
+	for (NSInteger i =0;i&amp;lt;self.colsHeight.count;i++) {
+		NSNumber* rolHeight = self.colsHeight[i];
+		if(shortest.floatValue&amp;gt;rolHeight.floatValue){
+		shortest = rolHeight;
+		shortCol=i;
+		}
+	}
+	CGFloat x = (shortCol+1)*colMargin+ shortCol * self.colWidth;
+	CGFloat y = shortest.floatValue+colMargin;
+	
+	//获取cell高度
+	CGFloat height=0;
+	NSAssert(self.heightBlock!=nil, @&quot;未实现计算高度的block &quot;);
+	if(self.heightBlock){
+		height = self.heightBlock(indexPath);
+	}
+	attr.frame= CGRectMake(x, y, self.colWidth, height);
+	self.colsHeight[shortCol]=@(shortest.floatValue+colMargin+height);
+	
+	return attr;
+}
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;//获取所有item的属性&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;-(NSArray&amp;lt;UICollectionViewLayoutAttributes *&amp;gt; *)layoutAttributesForElementsInRect:(CGRect)rect{
+	NSMutableArray* array = [NSMutableArray array];
+	NSInteger items = [self.collectionView numberOfItemsInSection:0];
+	for (int i = 0; i&amp;lt;items;i++) {
+		UICollectionViewLayoutAttributes* attr = [self layoutAttributesForItemAtIndexPath:[NSIndexPath indexPathForItem:i inSection:0]];
+		[array addObject:attr];
+	}
+	return array;
+}
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;实现下列方法会在出现新的cell时重新布局并调用preparelayout方法&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;-(BOOL)shouldInvalidateLayoutForBoundsChange:(CGRect)newBounds{
+return YES;
+}
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;每列高度的存放，初始高度可以改，我这里是0&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;-(NSMutableArray *)colsHeight{
+	if(!_colsHeight){
+		NSMutableArray * array = [NSMutableArray array];
+		for(int i =0;i&amp;lt;colCount;i++){
+			//这里可以设置初始高度
+			[array addObject:@(0)];
+		}
+		_colsHeight = [array mutableCopy];
+	}
+	return _colsHeight;
+}
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;再来看看控制器里就是这么简单&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;#pragma mark getter-setter
+-(UICollectionView *)collectionView{
+	if(!_collectionView){
+		_collectionView = [[UICollectionView alloc]initWithFrame:self.view.frame collectionViewLayout:self.layout];
+		_collectionView.backgroundColor = [UIColor whiteColor];
+		_collectionView.delegate=self;
+		_collectionView.dataSource=self;
+		[_collectionView registerClass:[CollectionViewCell class] forCellWithReuseIdentifier:identifer];
+	}
+	return _collectionView;
+}
+-(UICollectionViewLayout *)layout{
+	if(!_layout){
+		_layout = [[WaterfallCollectionLayout alloc]initWithItemsHeightBlock:^CGFloat(NSIndexPath *index) {
+		return [self.heightArr[index.item] floatValue];
+		}];
+	}
+	return _layout;
+}
+-(NSArray *)heightArr{
+	if(!_heightArr){
+		//随机生成高度
+		NSMutableArray *arr = [NSMutableArray array];
+		for (int i = 0; i&amp;lt;100; i++) {
+			[arr addObject:@(arc4random()%50+80)];
+		}
+		_heightArr = [arr copy];
+	}
+	return _heightArr;
+}
+&lt;/code&gt;&lt;/pre&gt;
+
+</description>
+                <link>http://tanhuiya.github.io/ios/2015/11/12/CollectionView</link>
+                <guid>http://tanhuiya.github.io/ios/2015/11/12/CollectionView</guid>
+                <pubDate>Thu, 12 Nov 2015 17:50:00 +0800</pubDate>
+        </item>
+
+        <item>
+                <title>Swift ThPullRefresh</title>
+                <description>&lt;p&gt;　　最近自己写了一个下拉加载最新，上拉加载更多的刷新控件。借鉴了其他优秀开源代码的实现效果比如MJRefresh和DGElasticPullRefresh。主要是为了学习别人的优秀思想。&lt;/p&gt;
+
+&lt;p&gt;如何使用：&lt;/p&gt;
+
+&lt;p&gt;github地址：https://github.com/tanhuiya/ThPullRefresh &lt;a href=&quot;https://github.com/tanhuiya/ThPullRefresh&quot;&gt;点击进入&lt;/a&gt;&lt;/p&gt;
+
+&lt;p&gt;　　Cocoapods 导入：pod ‘ThPullRefresh’，&lt;/p&gt;
+
+&lt;p&gt;　　在项目中 import ‘ThPullRefresh’&lt;/p&gt;
+
+&lt;p&gt;　　手动导入：将’ThPullRefresh’ 文件夹中的所有文件拽入项目中&lt;/p&gt;
+
+&lt;p&gt;　　head与foot基本效果的添加
+ 　　&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&quot;http://images2015.cnblogs.com/blog/884671/201601/884671-20160121112547937-1808285116.gif&quot; width=&quot;270&quot; height=&quot;480&quot; /&gt;　　　　&lt;/p&gt;
+
+&lt;p&gt;具体代码如下：&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;override func viewDidLoad() {
+    super.viewDidLoad()
+    self.tableView.registerClass(UITableViewCell.classForCoder(), forCellReuseIdentifier: &quot;tableViewCell&quot;)
+    self.tableView.rowHeight = UITableViewAutomaticDimension
+    self.tableView.estimatedRowHeight = 44
+    self.tableView.tableFooterView = UIView()
+//        self.tableView.addHeadRefresh(self) { () -&amp;gt; () in
+//            self.loadNewData()
+//        }
+    self.tableView.addHeadRefresh(self, action: &quot;loadNewData&quot;)
+
+    self.tableView.head?.hideTimeLabel=true
+    self.tableView.addFootRefresh(self, action: &quot;loadMoreData&quot;)
+}
+
+
+func loadNewData(){
+    //延时模拟刷新
+    self.index = 0
+    DeLayTime(2.0, closure: { () -&amp;gt; () in
+        self.dataArr.removeAllObjects()
+        for (var i = 0 ;i&amp;lt;5;i++){
+            let str = &quot;最新5个cell，第\(self.index++)个&quot;
+            self.dataArr.addObject(str)
+        }
+        self.tableView.reloadData()
+        self.tableView .tableHeadStopRefreshing()
+    })
+    
+}  DelayTime是一个方法的宏
+
+
+func  DeLayTime(x:Double,closure:()-&amp;gt;()){
+    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, Int64(x * Double(NSEC_PER_SEC))), dispatch_get_main_queue(), closure)
+ }
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;要实现果冻效果&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&quot;http://images2015.cnblogs.com/blog/884671/201601/884671-20160121112857703-1924927269.gif&quot; width=&quot;270&quot; height=&quot;480&quot; /&gt;　&lt;/p&gt;
+
+&lt;p&gt;代码如下&lt;/p&gt;
+
+&lt;p&gt;几个有颜色的点可以忽略，那是开发用于调贝塞尔曲线的。&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;/*
+   	*bgColor 背景颜色
+*loadingColor 加载的颜色
+*/
+public func addBounceHeadRefresh(target:AnyObject?,bgColor:UIColor,loadingColor:UIColor,action : Selector);
+
+//实现如下
+self.tableView.addBounceHeadRefresh(self,bgColor:UIColor.orangeColor(),loadingColor:UIColor.blueColor(), action: &quot;loadNewData&quot;)
+ 停止头部刷新和底部刷新
+
+self.tableView.tableHeadStopRefreshing()
+self.tableView.tableFootStopRefreshing
+&lt;/code&gt;&lt;/pre&gt;
+
+</description>
+                <link>http://tanhuiya.github.io/swift/ios/2015/10/08/ThRefresh</link>
+                <guid>http://tanhuiya.github.io/swift/ios/2015/10/08/ThRefresh</guid>
+                <pubDate>Thu, 08 Oct 2015 17:50:00 +0800</pubDate>
+        </item>
+
+
+</channel>
+</rss>

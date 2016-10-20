@@ -2,7 +2,7 @@
 layout: post
 title:  "iOS 测试(二)"
 date:   2016-08-17 09:50:00 +0800
-categories: blogs update
+categories: iOS
 ---
 
 # iOS 测试

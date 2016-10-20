@@ -2,7 +2,7 @@
 layout: post
 title:  "TDD测试"
 date:   2016-08-13 12:50:00 +0800
-categories: blogs update
+categories: iOS
 ---
 
 # TDD 

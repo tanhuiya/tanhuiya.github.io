@@ -1,0 +1,282 @@
+
+
+<!DOCTYPE html>
+<!--[if lt IE 7]> <html class="no-js lt-ie9 lt-ie8 lt-ie7 ie" lang="en"> <![endif]-->
+<!--[if IE 7]>    <html class="no-js lt-ie9 lt-ie8 ie" lang="en"> <![endif]-->
+<!--[if IE 8]>    <html class="no-js lt-ie9 ie" lang="en"> <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en"> <!--<![endif]-->
+<head>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<title>iOS 测试(二)</title>
+	<meta name="author" content="huiTan">
+	<link href='/assets/themes/the-program/css/style.css' rel="stylesheet" media="all">
+	<link href="http://feeds.feedburner.com/" rel="alternate" title="iOS 测试(二)" type="application/atom+xml">
+	<script src="http://cdnjs.cloudflare.com/ajax/libs/modernizr/2.0.6/modernizr.min.js"></script>
+</head>
+<body>
+
+<div id="page" class="hentry">
+	<header class="the-header">
+		<div class="unit-head">
+			<div class="unit-inner unit-head-inner">
+				<nav class="nav-global">
+					<ul class = "custom_ul">
+						<li class="logo"><a href="/">T_T</a></li>
+						<li ><image class = "icon" src = 'http://cdnstatic.visualizeus.com/thumbs/a4/11/builttype,3dtype,life,dope,fucksake,light-a41125efbc8ad28d0dd2fffc1749e033_h.jpg?ts=93246' /></li>
+						<li class="archive"><a href="/archive.html">archive</a></li>
+						<!-- <li class="page"><a href="/pages.html">pages</a></li> -->
+						<li class="category"><a href="/categories.html">categories</a></li>
+						<li class="tag"><a href="/tags.html">tags</a></li>
+						<li class="forkme"><div><iframe src="http://markdotto.github.com/github-buttons/github-btn.html?user=plusjade&repo=jekyll-bootstrap&type=fork&count=true"
+									allowtransparency="true" frameborder="0" scrolling="0" width="95px" height="20px"></iframe></div></li>
+					</ul>
+				</nav>
+			</div><!-- unit-inner -->
+		</div><!-- unit-head -->
+	</header>
+	<div class="body" role="main">
+		
+		<div class="unit-body">
+			<div class = "unit_header">
+				<image class = "header" src = "http://cdnstatic.visualizeus.com/thumbs/b6/c7/cats,adorable,black,boots,cute,kissyou-b6c7185e02196d5b4c8a48fa17ec8ef0_h.jpg?ts=93246"/>
+			</div>
+			<div class="unit-inner unit-body-inner">
+				<div class="entry-content">
+					
+
+<article class="unit-article layout-post">
+	<div class="unit-inner unit-article-inner">
+		<div class="content">
+			<header>
+				<div class="unit-head">
+					<div class="unit-inner unit-head-inner">
+						<h1 class="h2 entry-title">iOS 测试(二)</h1>
+					</div><!-- unit-inner -->
+				</div><!-- unit-head -->
+			</header>
+
+			<div class="bd">
+				<div class="entry-content">
+					<h1 id="ios-">iOS 测试</h1>
+
+<h2 id="section">测试类型</h2>
+<blockquote>
+  <h3 id="section-1">单元测试</h3>
+  <blockquote>
+    <p>单元测试是指对软件系统中的最小可测试单元进行检查，一般是指不可分割的模块和函数。</p>
+  </blockquote>
+</blockquote>
+
+<blockquote>
+  <h3 id="section-2">集成测试</h3>
+  <blockquote>
+    <p>集成测试是单元测试的逻辑扩展，最简单的形式就是把两个已经测试过的单元组成一个组件，并测试他们的接口。从这层意义上讲，组件是指多个单元测试的集成聚合。在iOS 开发领域中，集成测试被简单的分为 Api 接口测试，和功能集成测试。Api 接口测试是指，若一个iOS程序以网络请求的方式请求数据，测试时需要验证网络请求以及相应是否符合预期。iOS 功能集成测试其实就是功能测试。iOS 程序中，许多功能都是在UI上体现的，所以功能的测试主要就是 UI 的测试。</p>
+  </blockquote>
+</blockquote>
+
+<blockquote>
+  <h3 id="section-3">系统测试</h3>
+  <blockquote>
+    <p>系统测试类似黑盒测试，将已经确认的软件，计算机硬件以及网络等元素结合到一起，验证系统是否符合需求规格的定义，找出与需求规格不符合的地方。</p>
+  </blockquote>
+</blockquote>
+
+<h2 id="ios--1">iOS 程序中需要测什么</h2>
+<p>从分层的角度看，iOS应用也要分为前台展现和后台服务两个部分，每个组件都应该有单元测试和集成测试的步骤。</p>
+
+<blockquote>
+  <h3 id="mvc">MVC</h3>
+  <blockquote>
+    <p>在最基础的 MVC 模式中，每一次动作都是以 View 的 Action 方式传递给 Controller ，然后Controller 通知 Model 去响应，Model 层的业务逻辑有了结果之后，会以通知(Notification)的方式通知 Controller ，这时Controller 收到通知后会更新View 的显示状态。这样一个MVC 的响应循环就完成了。</p>
+  </blockquote>
+</blockquote>
+
+<p><img src="https://github.com/tanhuiya/RemoteImages/blob/master/Tests/MVC.png?raw=true" alt="MVC" /></p>
+
+<blockquote>
+  <ul>
+    <li>Model 层的业务是可以直接进行单元测试的，Model 的测试包括 Controller 到 Model 的测试，以及 Model 到Controller 的测试。</li>
+    <li>Action的测试，从 View 层到 Controller 层，Action 表示用户对View 进行了操作，View 响应了操作并调用Controller 方法或者 View 自己处理了方法。Action 部分可以被更细致的分为三个部分</li>
+  </ul>
+</blockquote>
+
+<blockquote>
+  <blockquote>
+    <ul>
+      <li>确认View 是否存在。</li>
+      <li>确认View 是否正常响应，绑定了正确的事件或方法。</li>
+      <li>确认View 发送消息的方式是否正确。</li>
+    </ul>
+  </blockquote>
+</blockquote>
+
+<blockquote>
+  <ul>
+    <li>Update的测试，当数据从 Model 层传递到 Controller 之后，需要更新 View ，这部分需要测试View 是否正常显示。</li>
+  </ul>
+
+</blockquote>
+
+<blockquote>
+  <h3 id="mvvm">MVVM</h3>
+  <blockquote>
+    <p>MVVM 是从 MVC 衍生出来的。测试的内容基本相同，将大部分的Controller 的逻辑迁移到ViewModel 中去了。</p>
+  </blockquote>
+</blockquote>
+
+<p><img src="https://github.com/tanhuiya/RemoteImages/blob/master/Tests/MVVM.png?raw=true" alt="MVVM" /></p>
+
+<blockquote>
+  <ul>
+    <li>Controller 自身的测试包括生命周期的一些逻辑，以及流程的跳转。</li>
+  </ul>
+</blockquote>
+
+					<div class="meta">
+						<p class="date-publish">
+							Published: 
+							<date class="date-pub" title="2016-08-17T09:50:00+08:00" datetime="2016-08-17T09:50:00+08:00" pubdate>
+							<span class="month"><abbr>August</abbr></span>
+							<span class="day">17</span>
+							<span class="year">2016</span>
+							</date>
+						</p>
+						<ul class="list-category list-linear">
+							<li class="list-head">category: </li>
+							
+							
+
+
+  
+     
+    	<li><a href="/categories.html#iOS-ref">
+    		iOS <span>6</span>
+    	</a></li>
+    
+  
+
+
+						</ul>
+						<ul class="list-tag list-linear">
+							<li class="list-head">tags: </li>
+							
+							
+
+
+  
+    
+  
+
+
+
+						</ul>
+					</div><!-- meta -->
+				</div><!-- entry-content -->
+				<div class="misc-content">
+					<div class="social">
+						<ul class="list-linear">
+							<li><div class="twitter-tweet"><a href="https://twitter.com/share" class="twitter-share-button" data-count="horizontal" data-via="tanhui" data-lang="en">Tweet</a></div></li>
+							<li><div class="twitter-follow"><a href="https://twitter.com/tanhui" class="twitter-follow-button" data-show-count="false" data-lang="en"></a></div></li>
+						</ul>
+					</div>
+					<div class="comment">
+					
+
+
+  <div id="disqus_thread"></div>
+<script type="text/javascript">
+    
+    var disqus_developer = 1;
+    var disqus_shortname = 'jekyllbootstrap'; // required: replace example with your forum shortname
+    
+    /* * * DON'T EDIT BELOW THIS LINE * * */
+    (function() {
+        var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+        dsq.src = 'http://' + disqus_shortname + '.disqus.com/embed.js';
+        (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+    })();
+</script>
+<noscript>Please enable JavaScript to view the <a href="http://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+<a href="http://disqus.com" class="dsq-brlink">blog comments powered by <span class="logo-disqus">Disqus</span></a>
+
+
+
+
+					</div>
+				</div><!-- misc-content -->
+			</div><!-- bd -->
+			<footer class="unit-foot">
+				<div class="unit-inner unit-foot-inner">
+					<nav class="pagination">
+						<ul>
+							
+							<li class="prev"><a class="internal" rel="prev"  href="/gitlab-ci/ios/2016/08/16/gitlab-ci" title="View iOS 持续集成之 Gitlab-Ci + FastLane">&laquo; iOS 持续集成之 Gitlab-Ci + FastLane</a></li>
+							
+							
+							<li class="pipe"> | </li>
+							
+							
+							<li class="next"><a class="internal" rel="next"  href="/docker/2016/10/19/%E4%BD%BF%E7%94%A8Docker-docker-compose-%E6%90%AD%E5%BB%BAnginx+php+mysql-%E7%8E%AF%E5%A2%83" title="View Docker docker-compose 配置Nginx+Php+Mysql开发环境">Docker docker-compose 配置Nginx+Php+Mysql开发环境 &raquo;</a></li>
+							
+						</ul>
+					</nav>
+					<p class="gotop">
+						<a href="#page">Back to Top</a>
+					</p>
+				</div>
+			</footer>
+
+		</div><!-- content -->
+	</div><!-- unit-inner -->
+</article>
+
+
+				</div>
+			</div><!-- unit-inner -->
+		</div><!-- unit-body -->
+	</div><!-- body -->
+	<footer class="the-footer">
+		<div class="unit-foot">
+			<div class="unit-inner unit-foot-inner">
+				<div class="misc vcard">
+					<h4>about</h4>
+					<ul>
+						<li class="contact"><address><span class="author fn n">huiTan</span> - <span class="fn email">hui_tan_123@163.com</span></address></li>
+						<li class="github"><a href="http://github.com/tanhuiya/" rel="me">github.com/tanhuiya</a></li>
+						<li class="twitter"><a href="http://twitter.com/tanhui/" rel="me">twitter.com/tanhui</a></li>
+						<li class="rss"><a href="http://feeds.feedburner.com/">Subscribe to RSS Feed</a></li>
+					</ul>
+				</div><!-- misc -->
+				<!-- <p class="licence">
+					Theme: <a href="http://layouts-the.me">the_minimum</a> based on <a href="http://jekyllbootstrap.com/">Jekyll-bootstrap</a>.<br>
+					Powered by <a href="https://github.com/mojombo/jekyll">Jekyll</a>.
+				</p> -->
+			</div><!-- unit-foot-inner -->
+		</div><!-- unit-foot -->
+	</footer>
+</div><!-- page -->
+<script>
+	(function(d, s) {
+		var js, fjs = d.getElementsByTagName(s)[0], load = function(url, id) {
+		if (d.getElementById(id)) {return;}
+		js = d.createElement(s); js.src = url; js.id = id;
+		fjs.parentNode.insertBefore(js, fjs);
+		};
+	load('//platform.twitter.com/widgets.js', 'tweetjs');
+	// load('https://apis.google.com/js/plusone.js', 'gplus1js'); // Checkout http://j.mp/ApDgMr for usage html for this is <div class="g-plusone" data-size="medium"></div>
+	// load('//connect.facebook.net/en_US/all.js#xfbml=1', 'fbjssdk'); // Checkout http://j.mp/wZw2xR for using open graph protorol html for this is <div class="fb-like" data-href="/ios/2016/08/17/iOS-Test2" data-send="false" data-layout="button_count" data-width="450" data-show-faces="false" data-font="verdana"></div>
+	}(document, 'script'));
+</script>
+<script>
+/*! A fix for the iOS orientationchange zoom bug.Script by @scottjehl, rebound by @wilto. MIT License.*/
+(function(j){var i=j.document;if(!i.querySelectorAll){return}var l=i.querySelectorAll("meta[name=viewport]")[0],a=l&&l.getAttribute("content"),h=a+", maximum-scale=1.0",d=a+", maximum-scale=10.0",g=true,c=j.orientation,k=0;if(!l){return}function f(){l.setAttribute("content",d);g=true}function b(){l.setAttribute("content",h);g=false}function e(m){c=Math.abs(j.orientation);k=Math.abs(m.gamma);if(k>8&&c===0){if(g){b()}}else{if(!g){f()}}}j.addEventListener("orientationchange",f,false);j.addEventListener("deviceorientation",e,false)})(this);
+</script>
+  
+  
+
+
+
+</body>
+</html>
+

@@ -2,7 +2,7 @@
 layout: post
 title:  "Docker docker-compose 配置Nginx+Php+Mysql开发环境"
 date:   2016-10-19 16:50:00 +0800
-categories: blogs update
+categories: Docker
 ---
 
 Docker docker-compose 配置Nginx+Php+Mysql开发环境

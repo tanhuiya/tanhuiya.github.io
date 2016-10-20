@@ -2,7 +2,7 @@
 layout: post
 title:  "nginx 配置pathInfo"
 date:   2016-4-28 17:50:00 +0800
-categories: blogs update
+categories: Nginx php
 ---
 
 网上查了很多资料，但其中是不完整的，不能正确处理path_info.

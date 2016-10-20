@@ -2,7 +2,7 @@
 layout: post
 title:  "iOS 持续集成之 Gitlab-Ci + FastLane"
 date:   2016-08-16 17:50:00 +0800
-categories: blogs update
+categories: gitlab-ci iOS
 ---
 
 # iOS 持续集成之 Gitlab-Ci + FastLane
