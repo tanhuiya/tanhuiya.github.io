@@ -4,7 +4,7 @@
  <title>T_T</title>
  <link href="http://tanhuiya.github.io/atom.xml" rel="self"/>
  <link href="http://tanhuiya.github.io"/>
- <updated>2016-10-20T11:46:35+08:00</updated>
+ <updated>2016-10-20T17:51:24+08:00</updated>
  <id>http://tanhuiya.github.io</id>
  <author>
    <name>huiTan</name>
@@ -309,6 +309,180 @@ RUN apt-get update &amp;amp;&amp;amp; apt-get install -y vim
 &lt;/code&gt;&lt;/pre&gt;
 
 &lt;p&gt;现在运行这三个容器只要使用命令  docker-compose up -d&lt;/p&gt;
+</content>
+ </entry>
+ 
+ <entry>
+   <title>iOS 推送详解</title>
+   <link href="http://tanhuiya.github.io/ios/2016/10/19/iOS-%E6%8E%A8%E9%80%81%E8%AF%A6%E8%A7%A3"/>
+   <updated>2016-10-19T16:50:00+08:00</updated>
+   <id>http://tanhuiya.github.io/ios/2016/10/19/iOS 推送详解</id>
+   <content type="html">&lt;h1 id=&quot;ios-&quot;&gt;iOS 推送详解&lt;/h1&gt;
+
+&lt;p&gt;iOS10 和 iOS9或者更低版本注册方式不同，iOS10 的推送更简单了，但是对于我们来说其实是要多适配一个版本而已.&lt;/p&gt;
+
+&lt;p&gt;注册代码如下:&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;-(void)registerRemoteNotification:(id)delegate{    
+    if ([[[UIDevice currentDevice] systemVersion] floatValue] &amp;gt;= 10.0) {
+        //iOS 10 later
+        UNUserNotificationCenter *center = [UNUserNotificationCenter currentNotificationCenter];
+        //必须写代理，不然无法监听通知的接收与点击事件
+        center.delegate = delegate;
+        [center requestAuthorizationWithOptions:(UNAuthorizationOptionBadge | UNAuthorizationOptionSound | UNAuthorizationOptionAlert) completionHandler:^(BOOL granted, NSError * _Nullable error) {
+            if (!error &amp;amp;&amp;amp; granted) {
+                //用户点击允许
+                NSLog(@&quot;注册成功&quot;);
+            }else{
+                //用户点击不允许
+                NSLog(@&quot;注册失败&quot;);
+            }
+        }];
+        
+        // 可以通过 getNotificationSettingsWithCompletionHandler 获取权限设置
+        //获取用户的推送设置信息
+        [center getNotificationSettingsWithCompletionHandler:^(UNNotificationSettings * _Nonnull settings) {
+            NSLog(@&quot;========%@&quot;,settings);
+        }];
+    }else if ([[[UIDevice currentDevice] systemVersion] floatValue] &amp;gt;= 8.0) {
+        
+        UIUserNotificationType types = (UIUserNotificationTypeAlert |
+                                        UIUserNotificationTypeSound |
+                                        UIUserNotificationTypeBadge);
+        
+        UIUserNotificationSettings *settings;
+        settings = [UIUserNotificationSettings settingsForTypes:types categories:nil];
+        //[[UIApplication sharedApplication] registerForRemoteNotifications];
+        [[UIApplication sharedApplication] registerUserNotificationSettings:settings];
+        
+    }
+    UIRemoteNotificationType apn_type = (UIRemoteNotificationType)(UIRemoteNotificationTypeAlert |
+                                                                   UIRemoteNotificationTypeSound |
+                                                                   UIRemoteNotificationTypeBadge);
+    [[UIApplication sharedApplication] registerForRemoteNotificationTypes:apn_type];
+    [[UIApplication sharedApplication] registerForRemoteNotifications];
+}
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;iOS10 的注册回调方法和以前还是同一个方法&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;- (void)application:(UIApplication *)application didRegisterForRemoteNotificationsWithDeviceToken:(NSData *)deviceToken {
+    [CiPush CiPushRegistDeviceToken:deviceToken];
+}
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;iOS8 iOS9 无论在前台还是后台，在后台时点击通知进入应用也会回调这个方法，
+收到远程消息会调用如下方法，可以通过applicationState 参数获取当前应用的状态，&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;- (void)application:(UIApplication *)application didReceiveRemoteNotification:(NSDictionary *)userInfo fetchCompletionHandler:(void (^)(UIBackgroundFetchResult result))completionHandler {
+    // 处理APNs代码，通过userInfo可以取到推送的信息（包括内容，角标，自定义参数等）。如果需要弹窗等其他操作，则需要自行编码。
+    //    NSLog(@&quot;\n&amp;gt;&amp;gt;&amp;gt;[Receive RemoteNotification - Background Fetch]:%@\n\n&quot;,userInfo);
+
+    completionHandler(UIBackgroundFetchResultNewData);
+    
+    if ([[[UIDevice currentDevice] systemVersion] floatValue]&amp;lt;10.0&amp;amp;&amp;amp;application.applicationState != UIApplicationStateActive) {
+        [self notificationDidClicked:userInfo];
+    }
+}
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;iOS 7 收到远程消息回调&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;// 按道理这是iOS7 的回调方法，目前已经废弃，但是在调试的时候发现iOS10 收到通知依然会回调这个方法，可能是iOS10 的bug	
+- (void)application:(UIApplication *)application didReceiveRemoteNotification:(NSDictionary *)userInfo {
+    [self notificationDidClicked:userInfo];
+
+}
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;iOS 10 新通知&lt;/p&gt;
+
+&lt;p&gt;iOS10 推出了一套新的推送机制，收到消息，以及打开消息通过 UNUserNotificationCenterDelegate 这个代理实现，当然要导入 #import &amp;lt;UserNotifications/UserNotifications.h&amp;gt;&lt;/p&gt;
+
+&lt;p&gt;以下是两个很重要的代理方法，但是由于上述说的，可能是iOS10 bug，有些时候这两个方法不调用，而是调用了iOS 7 的回调，为了保险起见，在两个方法里都添加对远程通知的处理。&lt;/p&gt;
+
+&lt;p&gt;iOS 注册代理方法，上面代码已经提及&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;UNUserNotificationCenter *center = [UNUserNotificationCenter currentNotificationCenter];
+//必须写代理，不然无法监听通知的接收与点击事件
+center.delegate = delegate;
+[center requestAuthorizationWithOptions:(UNAuthorizationOptionBadge | UNAuthorizationOptionSound | UNAuthorizationOptionAlert) completionHandler:^(BOOL granted, NSError * _Nullable error) {
+    if (!error &amp;amp;&amp;amp; granted) {
+        //用户点击允许
+        NSLog(@&quot;注册成功&quot;);
+    }else{
+        //用户点击不允许
+        NSLog(@&quot;注册失败&quot;);
+    }
+}];
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;收到远程通知时调用&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;- (void)userNotificationCenter:(UNUserNotificationCenter *)center willPresentNotification:(UNNotification *)notification withCompletionHandler:(void (^)(UNNotificationPresentationOptions options))completionHandler{
+    //NSLog(@&quot;%@&quot;,notification);
+    //收到推送的请求
+    UNNotificationRequest *request = notification.request;
+    //收到推送的内容
+    UNNotificationContent *content = request.content;
+    //收到用户的基本信息
+    NSDictionary *userInfo = content.userInfo;
+    //收到推送消息的角标
+    NSNumber *badge = content.badge;
+    //收到推送消息body
+    NSString *body = content.body;
+    //推送消息的声音
+    UNNotificationSound *sound = content.sound;
+    // 推送消息的副标题
+    NSString *subtitle = content.subtitle;
+    // 推送消息的标题
+    NSString *title = content.title;
+    
+    if([notification.request.trigger isKindOfClass:[UNPushNotificationTrigger class]]) {
+       // NSLog(@&quot;iOS10 收到远程通知:%@&quot;,userInfo);
+    }else {
+        // 判断为本地通知
+        //NSLog(@&quot;iOS10 收到本地通知:{\\\\nbody:%@，\\\\ntitle:%@,\\\\nsubtitle:%@,\\\\nbadge：%@，\\\\nsound：%@，\\\\nuserInfo：%@\\\\n}&quot;,body,title,subtitle,badge,sound,userInfo);
+    }
+    
+    // 需要执行这个方法，选择是否提醒用户，有Badge、Sound、Alert三种类型可以设置
+    completionHandler(UNNotificationPresentationOptionBadge|
+                      UNNotificationPresentationOptionSound|
+                      UNNotificationPresentationOptionAlert);
+}
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;点击通知进入应用时调用代理方法&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;// The method will be called on the delegate when the user responded to the notification by opening the application, dismissing the notification or choosing a UNNotificationAction. The delegate must be set before the application returns from applicationDidFinishLaunching:.
+- (void)userNotificationCenter:(UNUserNotificationCenter *)center didReceiveNotificationResponse:(UNNotificationResponse *)response withCompletionHandler:(void(^)())completionHandler{
+    NSLog(@&quot;%@&quot;,response);
+    //收到推送的请求
+    UNNotificationRequest *request = response.notification.request;
+    //收到推送的内容
+    UNNotificationContent *content = request.content;
+    //收到用户的基本信息
+    NSDictionary *userInfo = content.userInfo;
+    
+    //收到推送消息的角标
+    NSNumber *badge = content.badge;
+    //收到推送消息body
+    NSString *body = content.body;
+    //推送消息的声音
+    UNNotificationSound *sound = content.sound;
+    // 推送消息的副标题
+    NSString *subtitle = content.subtitle;
+    // 推送消息的标题
+    NSString *title = content.title;
+    if([response.notification.request.trigger isKindOfClass:[UNPushNotificationTrigger class]]) {
+        //NSLog(@&quot;iOS10 收到远程通知:%@&quot;,userInfo);
+    }else {
+        // 判断为本地通知
+       // NSLog(@&quot;iOS10 收到本地通知:{\\\\nbody:%@，\\\\ntitle:%@,\\\\nsubtitle:%@,\\\\nbadge：%@，\\\\nsound：%@，\\\\nuserInfo：%@\\\\n}&quot;,body,title,subtitle,badge,sound,userInfo);
+    }
+    completionHandler(); // 系统要求执行这个方法
+}
+&lt;/code&gt;&lt;/pre&gt;
 </content>
  </entry>
  

@@ -598,8 +598,6 @@ pre {
 /* meta */
 /* HEADER
 --------------------------------------------------------------------------------- */
-
-
 .the-header .logo {
   font-family: UbuntuMono-B, consolas, monaco, monospace;
   margin: 0;
@@ -617,6 +615,7 @@ pre {
   position: relative;
   top: 2px;
 }
+
 .the-header .icon{
   width: 100px;
   height: 100px;
