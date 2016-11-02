@@ -8,7 +8,7 @@ highlighter: pygments
 # Themes are encouraged to use these universal variables 
 # so be sure to set them if your theme uses them.
 #
-title :  T_T
+title :    T_T
 tagline: Site Tagline
 author :
   name : huiTan
@@ -16,6 +16,10 @@ author :
   github : tanhuiya
   twitter : tanhui
 
+baseurl:  /
+
+
+keywords : tanhui,iOS开发,tanhui博客,育儿网,苹果开发者,iPhone开发
 # The production_url is only used when full-domain names are needed
 # such as sitemap.txt 
 # Most places will/should use BASE_PATH to make the urls
