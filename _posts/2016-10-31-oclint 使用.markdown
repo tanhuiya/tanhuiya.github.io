@@ -1,4 +1,11 @@
-OCLint 使用
+---
+layout: post
+title:  "OCLint 使用"
+date:   2016-10-31 16:50:00 +0800
+categories: OCLint CI
+---
+
+# OCLint 使用
 
 最近要在持续化交付上添加一环，静态代码分析。虽然xcode的Analyze 也有这个功能，但是那个工具用起来比较麻烦，需要手动去操作。接下来就看看OCLint 的使用吧。
 
