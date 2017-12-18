@@ -1,0 +1,111 @@
+---
+layout: post
+title: Hash 表实现
+date: 2017-12-11 15:59:28.000000000 +09:00
+---
+
+
+`Hash` 表、二叉树、链表是最常见的数据结构。 本文中用`C++`来实现一个简单的哈希表，帮助理解哈希表是怎样运作的。为了简化代码并突出逻辑，采用简单的除余数作为散列函数，用线性探测来处理碰撞。
+
+线性探查法是用开放定址法处理冲突的一种最简单的探查方法。   
+> 它从发生冲突的d单元起，依次探查下一个单元   
+> 当达到下标为m—l的表尾单元时，下一个探查的单元是下标为O的表首单元。   
+> 即把散列表看作为首尾相接的循环表，直到碰到一个空闲单元或探查完所有单元为止。   
+> 这种方法的探查序列为`d，d+l，d+2，…`，或表示为`( d + i ) ％ m `,( `O ≤ i ≤ m-1`)。   
+> 当然，这里的i在最坏的情况下才能取值到`m-1`，一般只需取前几个值就可能找到一个空闲单元。找到一个空闲单元后，把发生冲突的待插入元素存入该单元即可。
+
+如果上述你看的比较晕，就直接看代码吧。
+
+### Hash 列表项 
+用 `HashItem` 表示,这里 `key` 和 `value` 都只用最简单的 `Int` 表示了，换成任何数值类型都是可以的.
+
+```
+class HashItem{
+private:
+    int key;
+    int value;
+public:
+    HashItem(int key,int value){
+        this->key = key;
+        this->value = value;
+    }
+    int getKey(){
+        return key;
+    }
+    int getValue(){
+        return value;
+    }
+};
+```
+
+### HashMap 定义
+
+```
+const int TABLE_SIZE = 128;
+
+class HashMap{
+private:
+    HashItem **table;
+public:
+    HashMap(){
+        // 动态分配 table 内存
+        table = new HashItem *[TABLE_SIZE];
+        for (int i = 0; i < TABLE_SIZE; i++) {
+            table[i] = NULL;
+        }
+    }
+    
+    int get(int key){
+        int hash = (key % TABLE_SIZE);
+        // 处理碰撞，从当前位置一直往下找
+        while (table[hash] != NULL && table[hash]->getKey() != key){
+            hash = (hash + 1) %TABLE_SIZE;
+        }
+        if (table[hash] == NULL){
+            return -1;
+        } else {
+            return table[hash]->getValue();
+        }
+    }
+    
+    void put(int key,int value) {
+        int hash = (key % TABLE_SIZE);
+        // 处理碰撞，从当前位置一直往下找
+        while (table[hash] != NULL && table[hash]->getKey() != key) {
+            hash = (hash + 1) %TABLE_SIZE;
+        }
+        if (table[hash] != NULL) {
+            delete table[hash];
+        }
+        table[hash] = new HashItem(key,value);
+    }
+    
+    ~HashMap(){
+        // 析构函数记得释放 table 的每一项，以及 table
+        for (int i = 0; i < TABLE_SIZE; i++) {
+            if (table[i] != NULL) {
+                delete table[i];
+            }
+        }
+        delete[] table;
+    }
+};
+
+```
+
+### 主函数如下：
+
+```
+int main(int argc, char * argv[]){
+    HashMap hashMap;
+    hashMap.put(1,10);
+    hashMap.put(2,20);
+    hashMap.put(129, 15);
+    cout<<hashMap.get(1)<<endl; // 10
+    cout<<hashMap.get(2)<<endl; // 20
+    cout<<hashMap.get(129)<<endl; // 15
+    return 0;
+}
+```
+
+
