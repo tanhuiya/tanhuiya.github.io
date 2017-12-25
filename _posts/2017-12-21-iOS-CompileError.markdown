@@ -1,6 +1,6 @@
 ---
 layout: post
-title: 编译错误 error: clang importer creation failed
+title: 编译错误 error clang importer creation failed
 date: 2017-12-21 15:59:28.000000000 +09:00
 ---
 
