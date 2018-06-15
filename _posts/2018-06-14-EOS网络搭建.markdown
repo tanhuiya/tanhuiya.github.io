@@ -1,0 +1,293 @@
+
+---
+layout: post
+title: EOS搭建网络
+date: 2018-06-14 15:59:28.000000000 +09:00
+---
+
+## 安装本地环境
+
+### 下载代码
+
+下载最新代码，`master` 分支即可,`--recursive` 会把`submodule` 也一起下载下来
+
+`git clone https://github.com/EOSIO/eos --recursive`
+
+
+### 编译安装
+切换到eos 目录，执行 eosio_build.sh 脚本
+
+```
+cd eos
+./eosio_build.sh
+```
+最后出现 `EOSIO` 几个超大的字母就是`OK` 了。
+
+### 验证安装是否成功
+
+`Linux:`
+
+`~/opt/mongodb/bin/mongod -f ~/opt/mongodb/mongod.conf &`
+
+`MacOS:`
+
+`/usr/local/bin/mongod -f /usr/local/etc/mongod.conf &`
+
+```
+cd build
+make test
+```
+
+这个过程需要等一段时间。
+
+### 安装可执行文件
+```
+cd build
+sudo make install
+```
+这个会把一些可执行文件比如`nodeos`，`cleos` 拷贝到 `/usr/local` 目录下，这个目录在当前的`PATH`中，所以执行命令起来会比较方便。
+
+## 结构
+* `nodeos`： 区块链服务器节点生成组建
+* `cleos`： 和区块链交互的接口命令
+* `keosd`： `EOS` 钱包
+
+## `nodeos`
+
+### 启动单个节点
+
+**`nodeos`** 是区块链服务器节点生成组建。
+
+启动单个区块链服务器节点：
+
+`nodeos -e -p eosio --plugin eosio::chain_api_plugin --plugin eosio::history_api_plugin `
+
+* `-p` 是这个节点的名称
+* `--plugin` 是启动节点时，需要一起使用到的插件服务
+
+nodeos 成功运行的话，应该有如下log,即已经开始出块了，`signed by eosio [trxs: 0, lib: 0, confirmed: 0]` 表示块里还没有交易。`Ctrl-C` 可以停止进程。
+
+```
+2243857ms thread-0   http_plugin.cpp:342           add_handler          ] add api url: /v1/history/get_transaction
+2243857ms thread-0   net_plugin.cpp:2903           plugin_startup       ] starting listener, max clients is 25
+2244008ms thread-0   producer_plugin.cpp:942       produce_block        ] Produced block 000000029ff16f71... #2 @ 2018-06-13T08:37:24.000 signed by eosio [trxs: 0, lib: 0, confirmed: 0]
+2244506ms thread-0   producer_plugin.cpp:942       produce_block        ] Produced block 00000003c5c6b8f4... #3 @ 2018-06-13T08:37:24.500 signed by eosio [trxs: 0, lib: 2, confirmed: 0]
+```
+
+### 高级设置
+
+如果你觉得启动 **`nodeos`** 的时候，参数太多，记不清。可以将参数填到配置文件`config.ini`中。
+> `config.ini` 文件不是一开始就有的，当第一次启动nodeos 时，如果没有找到 `config.ini`，就会为它创建一个默认的，文件位置如下
+
+```
+Mac OS: ~/Library/Application Support/eosio/nodeos/config/config.ini
+Linux: ~/.local/share/eosio/nodeos/config/config.ini
+```
+
+在 `config.ini` 中添加如下配置:
+
+```
+enable-stale-production = true
+# Enable block production with the testnet producers
+producer-name = eosio 
+# Load the block producer plugin, so you can produce blocks
+plugin = eosio::producer_plugin
+# Wallet plugin
+plugin = eosio::wallet_api_plugin
+# As well as API and HTTP plugins
+plugin = eosio::chain_api_plugin
+plugin = eosio::http_plugin
+# This will be used by the validation step below, to view account history
+plugin = eosio::history_api_plugin
+```
+
+> 注意：注释掉`config.ini `内先前的配置`enable-stale-production = false`
+
+
+**再次启动只需输入 `nodeos` 就👌了。**
+
+区块链的数据存放路径如下
+
+```
+Mac OS: ~/Library/Application Support/eosio/nodeos/data
+Linux: ~/.local/share/eosio/nodeos/data
+```
+如果重启`nodeos` 失败，可以删除之前的`data`数据.
+
+
+
+## `cleos(client-eos)`
+
+前面的`nodeos`会在`8888`端口开启一个`http`服务。   
+`cleos` 是一个客户端命令行工具，内部其实是封装从终端传进去的参数，然后发送请求给 `nodeos`,拿到返回值后，经过处理再输出到终端。
+
+### 查看节点的状态
+
+`cleos get info `  
+或者  
+`cleos -u http://localhost:8888 get info`
+
+```json
+{
+  "server_version": "07a67985",
+  "chain_id": "706a7ddd808de9fc2b8879904f3b392256c83104c1d544b38302cc07d9fca477",
+  "head_block_num": 8, // 节点区块数量
+  "last_irreversible_block_num": 7,
+  "last_irreversible_block_id": "00000007e45264c9bc7d24d5c655b20336a6ea4d8fa0adfbaf0120a3874a373f",
+  "head_block_id": "0000000890033e629074ecc2c492e2ff483adb46ad942cc0e81dacd7901c9593",
+  "head_block_time": "2018-06-13T08:37:27",
+  "head_block_producer": "eosio", // 生产者节点名称
+  "virtual_block_cpu_limit": 201403,
+  "virtual_block_net_limit": 1055940,
+  "block_cpu_limit": 199900,
+  "block_net_limit": 1048576
+}
+```
+
+### 创建钱包
+
+```
+//创建默认钱包
+cleos wallet create 
+//创建 jack 的钱包
+cleos wallet create -n jack 
+```
+要保存一下钱包的密码，如下：`PW5JR33BmijnjWC8Ye8qDoJG7zUdrjk6GZMAjsEuVbG78oDQUFyKz`
+
+```
+Creating wallet: jack
+Save password to use in the future to unlock this wallet.
+Without password imported keys will not be retrievable.
+"PW5JR33BmijnjWC8Ye8qDoJG7zUdrjk6GZMAjsEuVbG78oDQUFyKz"
+```
+
+### 创建`key`
+
+```
+➜  eos git:(master) ✗cleos create key
+Private key: 5KiHiPpgUQmb3RdiV8FqV78xyXkZ4A7oKPfG2aJY9DTxHjXrbcV
+Public key: EOS6kQMgyLcR1Y326VtiGBEqbnvH5i3B2wAATcoQ6qqsYQ2KGGCh9
+```
+
+### 将密钥导入钱包
+
+```
+➜  eos git:(master) ✗ cleos wallet import -n jack 5KiHiPpgUQmb3RdiV8FqV78xyXkZ4A7oKPfG2aJY9DTxHjXrbcV
+imported private key for: EOS6kQMgyLcR1Y326VtiGBEqbnvH5i3B2wAATcoQ6qqsYQ2KGGCh9
+```
+
+### 显示所有的密钥
+会显示所有***没有被锁上***的钱包的密钥
+
+```
+➜  eos git:(master) ✗ cleos wallet keys
+[[
+    "EOS6MRyAjQq8ud7hVNYcfnVPJqcVpscN5So8BhtHuGYqET5GDW5CV",
+    "5KQwrPbwdL6PhXujxW37FSSQZ1JiwsST4cqQzDeyXtP79zkvFD3"
+  ],[
+    "EOS6kQMgyLcR1Y326VtiGBEqbnvH5i3B2wAATcoQ6qqsYQ2KGGCh9",
+    "5KiHiPpgUQmb3RdiV8FqV78xyXkZ4A7oKPfG2aJY9DTxHjXrbcV"
+  ]
+]
+```
+
+### 查看钱包列表
+```
+➜  eos git:(master) ✗ cleos wallet list
+Wallets:
+[
+  "default",
+  "jack *"
+]
+```
+目前有`default`钱包和`jack`钱包， `jack`后面的`*` 代表这个钱包可用（没有被锁）。
+
+### 创建用户
+
+创建用户 `jack.token`
+
+```
+➜  eos git:(master) ✗ cleos create account eosio jack.token \
+EOS6kQMgyLcR1Y326VtiGBEqbnvH5i3B2wAATcoQ6qqsYQ2KGGCh9 \
+EOS6kQMgyLcR1Y326VtiGBEqbnvH5i3B2wAATcoQ6qqsYQ2KGGCh9
+
+executed transaction: 008185163cfa269f55c8f080aa4281b5b2e192ba0569caa8a41a7aca983d0d4a  200 bytes  128584 us
+#         eosio <= eosio::newaccount            {"creator":"eosio","name":"jack.token","owner":{"threshold":1,"keys":[{"key":"EOS6kQMgyLcR1Y326VtiGB...
+3564487ms thread-0   main.cpp:381                  print_result  warning: transaction executed locally, but may not be confirmed by the network yet
+```
+参数说明
+`cleos create account [creator] [accountname] [OwnerKey] [ActiveKey]`  
+
+
+### 加载bios合约
+```
+cleos set contract eosio build/contracts/eosio.bios -p eosio
+
+Reading WAST/WASM from build/contracts/eosio.bios/eosio.bios.wasm...
+Using already assembled WASM...
+Publishing contract...
+executed transaction: 27065fadf93030fd6289da8f6f86824b7188e8f7ca3cb947e48fafa19bcef1fb  3720 bytes  4449 us
+#         eosio <= eosio::setcode               {"account":"eosio","vmtype":0,"vmversion":0,"code":"0061736d0100000001621260037f7e7f0060057f7e7e7e7e...
+#         eosio <= eosio::setabi                {"account":"eosio","abi":"0e656f73696f3a3a6162692f312e30050c6163636f756e745f6e616d65046e616d650f7065...
+warning: transaction executed locally, but may not be confirmed by the network yet
+
+```
+
+### 给`account`设置`contract`
+为账户 `jack.token` 设置 `eosio.token` 合约
+
+```
+cleos set contract jack.token build/contracts/eosio.token -p jack.token
+
+Reading WAST/WASM from build/contracts/eosio.token/eosio.token.wasm...
+Using already assembled WASM...
+Publishing contract...
+executed transaction: 3ef8e558d936a7828dfa069323ec29c52031da6af46114f53e777435e15aa1b6  8104 bytes  21033 us
+#         eosio <= eosio::setcode               {"account":"jack.token","vmtype":0,"vmversion":0,"code":"0061736d01000000017e1560037f7e7f0060057f7e7...
+#         eosio <= eosio::setabi                {"account":"jack.token","abi":"0e656f73696f3a3a6162692f312e30010c6163636f756e745f6e616d65046e616d650...
+warning: transaction executed locally, but may not be confirmed by the network yet
+
+```
+### 查看账户的合约
+```
+cleos get code jack.token
+
+code hash: 641f336aa1d08526201599c3c0ddb7a646e5ac8f9fd2493f56414d0422a0f957
+```
+只要`hash` 值不为 0，就是已经有合约了。
+
+### 创建代币
+
+```
+cleos push action jack.token create '["eosio","1000000000.0000 EOS",0,0,0]' -p jack.token
+
+executed transaction: b29f5769319dc3b854acec8a7617fd87a15e180fdb3193f13ac03cd82a702e8f  120 bytes  1363 us
+#    jack.token <= jack.token::create           {"issuer":"eosio","maximum_supply":"1000000000.0000 EOS"}
+```
+`-p jack` 代表以`jack`的身份执行的，因为这个合约的所有者是`jack`。
+
+### 给eosio 发币
+
+```
+cleos push action jack.token issue '["eosio","1000000000.0000 EOS","issue"]' -p eosio
+```
+给`eosio`发了1000000000.0000 个 EOS
+
+### 转账
+```
+cleos push action jack.token transfer '["eosio", "jack.token","50000.0000 EOS","trans"]' -p eosio
+
+executed transaction: 5909733736cf6f55990ee59b3187253e55eaa9a9e5d248ffc7e3c206f6a2accc  136 bytes  2650 us
+#    jack.token <= jack.token::transfer         {"from":"eosio","to":"jack.token","quantity":"50000.0000 EOS","memo":"trans"}
+#         eosio <= jack.token::transfer         {"from":"eosio","to":"jack.token","quantity":"50000.0000 EOS","memo":"trans"}
+```
+从`eosio`转`50000`个`EOS`给`jack.token`帐户
+
+### 查看余额
+```
+cleos get currency balance jack.token eosio
+999950000.0000 EOS
+
+cleos get currency balance jack.token jack.token
+50000.0000 EOS
+```
