@@ -1,0 +1,70 @@
+
+---
+layout: post
+title: Nginx 配置反向代理
+date: 2018-06-23 15:59:28.000000000 +09:00
+---
+
+
+最近要搭个`EOS`节点，然后在`AWS`租用了个 `Ubuntu`服务器，运维大哥呢，只帮我开了三个端口 `80,22,443`
+
+当我用启动eos服务节点时，修改了启动的端口为80，如下
+`http-server-address = 0.0.0.0:80`
+
+但是启动起来报错，排查也没发现 `80` 端口被占用。后来换 `443` 也不行。反正默认的 `8888` 端口时可以的。
+
+两个办法：
+
+* 让运维给我开放 `8888` 端口。
+* 利用 `nginx` 做反向代理，将`80 `端口代理给本地的 8888 端口。
+
+最终选择 第二个办法，不是因为它方便。 
+
+***主要是为了防止全网扫描定位高防后的服务器，修改默认的 `8888` 端口 至全网最大存活数量的端口 `80` ，这样可以有效抬高攻击者的定位成本。***
+
+## Nginx 
+
+### 安装
+这里利用最简单的安装方式
+
+`sudo apt-get install nginx`
+
+### 启动
+
+`sudo /etc/init.d/nginx start`
+
+在浏览器输入ip，看是否nginx已成功启动
+
+### 修改配置
+
+`sudo vi /etc/nginx/sites-available/default`
+
+替换 `localtion / {***}` 中的内容如下
+
+```
+    location / {
+        proxy_pass http://localhost:8888; 
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection 'upgrade';
+        proxy_set_header Host $host;
+        proxy_cache_bypass $http_upgrade;
+    }
+
+```
+
+### 测试
+
+```
+sudo nginx -t
+nginx: the configuration file /etc/nginx/nginx.conf syntax is ok
+nginx: configuration file /etc/nginx/nginx.conf test is successful
+
+```
+如果有上述输出则表示`OK`.
+
+### 重启Nginx服务
+
+`sudo /etc/init.d/nginx start`
+
+这样就不用指定端口，就访问到对应服务器的`8888` 了。

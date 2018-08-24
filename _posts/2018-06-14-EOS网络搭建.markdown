@@ -1,7 +1,7 @@
 
 ---
 layout: post
-title: EOS搭建网络
+title: EOS 搭建网络
 date: 2018-06-14 15:59:28.000000000 +09:00
 ---
 

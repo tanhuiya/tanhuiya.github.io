@@ -1,0 +1,69 @@
+---
+layout: post
+title: Crontab 定时任务，维护进程
+date: 2018-07-14 15:59:28.000000000 +09:00
+---
+
+
+---
+
+
+> 在服务器上跑一个进程，不过几天后可能会突然挂掉，可能是 RAM 不够等原因，具体还要排查。。。
+> 
+> 于是就想写一个定时任务，每分钟检查这个进程还在不在，如果已经挂掉的话，就重新启动.
+
+## Crontab
+`crontab` 是一个linux下的定时执行工具，可以在无需人工干预的情况下运行作业。是一个周期性运行的命令，在约定的时间执行已经计划好的工作.
+
+**`cron` 定时规则**
+
+包含以下几个参数 `m h  dom mon dow   command`
+
+|m(分钟)|h(小时)| dom(日期)| mon(月份)| dow(星期)|command(命令)|解释|
+|---|---|---|---|---|---|-----|
+|*|*|*|*|*|/home/start.sh|每分钟执行 start.sh |
+|*/3 |*|*|*|*|/home/start.sh|每3分钟执行 start.sh|
+|3 |*|*|*|*|/home/start.sh|每小时第3分钟执行 start.sh|
+|3,10 |*|*|*|*|/home/start.sh|每小时第3分钟,第10分钟执行 start.sh|
+|3 |10|*|*|*|/home/start.sh|每天10:03执行 start.sh|
+|3 |10|*|*|1|/home/start.sh|每个周一的10:03执行 start.sh|
+|* |1 |*|*|*|/home/start.sh|从01:00到01:59 每隔1分钟 执行|
+|0 |*/1 |*|*|*|/home/start.sh|每个小时的 0 分执行|
+|0 |* |*|*|*|/home/start.sh|每个小时的 0 分执行,同上|
+|1 |8-14/2|*|*|*|/home/start.sh| 每天 8:01,10:01,12:01,14:01 执行|
+|3 |3|3|*|*|/home/start.sh| 每个月的 3号03:03 执行|
+
+
+编辑配置文件
+```
+crontab -e
+```
+我的需求是每3分钟跑一下脚本，在最后添加一行
+```
+*/3 * * * * /home/startETH.sh
+```
+保存退出
+
+不出意外，`startETH.sh` 会在3分钟后执行。
+
+---
+
+ `startETH.sh` 文件中判断也很简单
+
+```
+#! /bin/bash
+# 查看是否存在 geth 进程
+PROCESS_NUM=`ps -fe |grep "geth" | grep -v "grep" | wc -l`
+if [ $PROCESS_NUM -eq 0 ];
+then
+echo "Geth has shutdown"
+echo "Restarting ...."
+# 重新启动
+nohup geth --datadir /home/ethereum --cache 1024 --rpc --rpcaddr "0.0.0.0" --rpcport "8545" --rpcapi "db,eth,net,web3,personal" 2>> ./logs/geth_network.log &
+echo "Started success"
+fi
+```
+
+`OK`, 利用 `Cron` 实现还是蛮方便的，或者直接写一个死循环也可以的～
+
+
