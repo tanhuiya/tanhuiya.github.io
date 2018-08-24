@@ -1,4 +1,3 @@
-
 ---
 layout: post
 title: Hyperledger Composer 0.18.1 Timeout Error
