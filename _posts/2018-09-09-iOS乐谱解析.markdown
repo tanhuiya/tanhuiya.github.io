@@ -1,0 +1,127 @@
+---
+layout: post
+title: 乐谱 🎼 iOS 解析
+date: 2018-09-09 15:59:28.000000000 +09:00
+---
+
+
+上半年开发了一款含乐谱解析功能的`App`,网上也没有找到类似的，就自己做了一款。后来由于某些原因，把代码上传到了`github`上，之后就没管。不过最近不少人问我这个乐谱的相关功能实现，于是在这里讲一下，也可以给以后有此需求的童鞋们有个参照, 授人予鱼，不如授人予渔。
+
+效果如下，这里主要介绍一下一些知识点，和用到的算法。
+
+![playing.gif](https://upload-images.jianshu.io/upload_images/1453111-67603136bf880b82.gif?imageMogr2/auto-orient/strip)
+
+
+乐谱的素材一般有两种，`xml` 文件和 `midi` 文件，`midi` 是可以播放的二进制文件（用`iOS`自带的播放器，效果很差！！！）。
+
+需求是，教师会在后台上传乐谱的`xml`文件，客户端下载后解析
+
+这个项目用到了很多`C++` 的实现，并且抽离具体项目开发。一个是 `C++ `速度快，另一个是安卓可以复用。所以，有些功能模块的东西，都尽量用`C++`写，`iOS `可以引用 `.a` 文件，安卓可以引用打包成的 `.so` 文件。
+
+## 解析
+
+第一步就是解析xml文件，一张乐谱的信息很多，这里就不细说了，打开`xml`文件看看就知道了。解析的过程，找到了国外的一个`C++`写的专门解析`xml`的程序，想直接拿来用当然是不可能的啦！ 拿过来后略加修改，最烦的当然是和项目的对接啦
+
+比如头文件的引用，`C++` 的编译版本， 有些文件和 `OC` 的内置库文件重名，会导致编译通过，打包失败， 等等。。，（之前一个项目对接过`cocos2d-lua`），经过这个项目后，对`iOS`工程的 `build setting` 更加熟悉了 😂。[传送门](https://github.com/Webern/MusicXML-Class-Library)
+
+解析完之后，会得到一个 `C++` 的 `mDoc` 对象，`iOS` 可以直接调试`C++`代码，所以`C++`这块工作都是我来做。 看看部分属性展示如下。
+
+![mDoc.png](https://upload-images.jianshu.io/upload_images/1453111-b03b6ea146d7cddf.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240)
+
+
+类似一个树形结构吧，为了之后在程序中好用，统一写一个解析器，把这个 `C++` 对象转成 `OC` 对象`Score`， 该对象的类图大概如下：
+
+![musicxml类图 (1).png](https://upload-images.jianshu.io/upload_images/1453111-74306fea383c108c.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240)
+
+
+有很多专业用词，比如音轨，还有tempo的解释我就不一一科普了，可以看出来，对象类型还是挺多的。按照如上的图，一个一个解析吧。
+
+***解析的过程有几个难点：***
+
+* 音符(`note`)的时长怎么定义，音符的宽度怎么定义
+* 音节(`measure`)的宽度怎么保持一致
+* **音符的位置**
+* 音节如何换行
+
+ 
+以上几个问题，是在绘制前需要解决的。我们一个一个来。
+
+
+音符的时长：
+
+学过的音乐的都知道，音符有二分之一拍，四分之一拍，八分之一拍 等等，不懂的可以去查维基百科
+
+每个音轨有个`division`标签，代表一个四分之一音符对应的时长
+```
+<attributes>
+    <divisions>24</divisions>
+    <key>
+      <fifths>-3</fifths>
+      <mode>major</mode>
+    </key>
+    <time>
+      <beats>3</beats>
+      <beat-type>4</beat-type>
+    </time>
+    <clef>
+      <sign>G</sign>
+      <line>2</line>
+    </clef>
+  </attributes>
+```
+
+* `key` 代表的是这个音轨要 升 或 降 几调
+* `division` 代表每个四分之一音符的时长，这里是24
+* `time` 代表每个音节是几几拍，如上是每个四分之一音符为一拍，每个音节共三拍，简称四三拍
+* `clef` 是这个音节的音调
+
+如下代表一个`note`
+
+```
+<note default-x="196">
+    <pitch>
+      <step>B</step>
+      <alter>-1</alter>
+      <octave>4</octave>
+    </pitch>
+    <duration>24</duration>
+    <voice>1</voice>
+    <type>quarter</type>
+    <stem default-y="-55.5">down</stem>
+    <lyric default-y="-80" number="1">
+      <syllabic>single</syllabic>
+      <text>Auf</text>
+    </lyric>
+  </note>
+```
+
+
+* `type -> quarter` 代表是个四分之一音符，
+* `duration` 就对应之前的` division`，
+* `pitch `代表这个音符的位置，在五线谱的垂直位置
+* `stem` 代表他的尾巴朝向，这个是由五线谱导出来的，有一定参考意义，但后面还需根据实际情况重新计算
+* `lyric` 歌词信息
+
+
+这里的duration就可以定义为时长，简单来说，duration 越大，这个音符时间越长！  
+注意，每个音轨（part）的 division 可能不一样，所以处理的时候，要统一成一个值。
+比如：  
+
+* `part1` 中 `division` = `24`， 一个 `note` 的 `duration` 为` 12`， 它就是一个 八分之一 音符， 
+* `part2` 中 `division` = `96`， 一个 `note `的 `duration` 为 `192`， 它就是一个 二分之一 音符
+
+音符的开始时间，就是由它用轨道前面的所有`duration`加起来（包括休止符-- `rest`），音符的时长可以定义成在整个音轨的绝对时间，也可以定义成相对于当前音节的相对时间。 我是从第一种后来改到第二张的，为了后面处理音节换行方便。
+
+![startTime.png](https://upload-images.jianshu.io/upload_images/1453111-fdc4bf31b129b636.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240)
+
+
+音节的开始时间有了，持续时间也有了，那具体画在什么位置呢，这个就有讲究了
+
+
+待续。。。
+
+
+
+
+
+![playing.gif](https://upload-images.jianshu.io/upload_images/1453111-e5da3d3fdcacf094.gif?imageMogr2/auto-orient/strip)
